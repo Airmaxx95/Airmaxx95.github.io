@@ -4411,65 +4411,6 @@ body.is-booting #panelDesc {
   // =========================================================
   // GENERATED MARKUP
   // =========================================================
-  function getEventClientPoint(event) {
-    if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
-      return { x: event.clientX, y: event.clientY };
-    }
-
-    const touch =
-      (event && event.changedTouches && event.changedTouches[0]) ||
-      (event && event.touches && event.touches[0]);
-
-    if (touch && Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) {
-      return { x: touch.clientX, y: touch.clientY };
-    }
-
-    return null;
-  }
-
-  function resolveMediaNodeFromEvent(event) {
-    const path = event && event.composedPath ? event.composedPath() : null;
-    if (path && path.length) {
-      for (const node of path) {
-        if (node && node.classList && node.classList.contains("media-item")) return node;
-        if (node && node.querySelector) {
-          const nested = node.querySelector(".media-item");
-          if (nested) return nested;
-        }
-      }
-    }
-
-    const target = event && event.target;
-    if (target && target.closest) {
-      const direct = target.closest(".media-item");
-      if (direct) return direct;
-      const wrapper = target.closest(".video-loading-shell, .lightbox-transition-media, .media-frame, .lightbox-stage");
-      if (wrapper && wrapper.querySelector) {
-        const nested = wrapper.querySelector(".media-item");
-        if (nested) return nested;
-      }
-    }
-
-    return null;
-  }
-
-  function isVisualPrimaryCard(index) {
-    const card = cards[index];
-    if (!card) return false;
-    const rect = card.getBoundingClientRect();
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-
-    const containsCenter =
-      cx >= rect.left && cx <= rect.right &&
-      cy >= rect.top && cy <= rect.bottom;
-
-    const style = window.getComputedStyle(card);
-    const opacity = parseFloat(style.opacity || "0") || 0;
-
-    return containsCenter || opacity > 0.75;
-  }
-
   function pointHitsVisibleMediaPixels(mediaEl, clientX, clientY) {
     if (!mediaEl) return false;
 
@@ -4513,16 +4454,36 @@ body.is-booting #panelDesc {
     );
   }
 
-  function handleVisibleMediaClick(index, event) {
+  
+  function resolveInteractiveMediaTarget(event, card) {
+    const t = event && event.target;
+    if (t && t.classList && t.classList.contains("media-item")) return t;
+    if (t && t.closest) {
+      const found = t.closest(".media-item");
+      if (found) return found;
+      const wrap = t.closest(".media-frame, .lightbox-stage, .video-loading-shell, .lightbox-transition-media");
+      if (wrap && wrap.querySelector) {
+        const nested = wrap.querySelector(".media-item");
+        if (nested) return nested;
+      }
+    }
+    if (card && card._els) {
+      return card._els.frame.querySelector(".media-item") || card._els.lightbox.querySelector(".media-item");
+    }
+    return null;
+  }
+
+function handleVisibleMediaClick(index, event) {
     const card = cards[index];
-    if (!card) return;
-    if (!isVisualPrimaryCard(index)) return;
+    if (!card || index !== currentCenteredIndex) return;
 
-    const mediaNode = resolveMediaNodeFromEvent(event);
-    if (!mediaNode) return;
+    const mediaEl = resolveInteractiveMediaTarget(event, card);
+    if (!mediaEl) return;
 
-    const point = getEventClientPoint(event);
-    if (point && !pointHitsVisibleMediaPixels(mediaNode, point.x, point.y)) return;
+    const x = (event.clientX ?? (event.changedTouches && event.changedTouches[0] && event.changedTouches[0].clientX) ?? 0);
+    const y = (event.clientY ?? (event.changedTouches && event.changedTouches[0] && event.changedTouches[0].clientY) ?? 0);
+
+    if (x && y && !pointHitsVisibleMediaPixels(mediaEl, x, y)) return;
 
     cycleLightbox(index);
   }
@@ -4531,23 +4492,17 @@ body.is-booting #panelDesc {
     const card = cards[index];
     if (!card || index !== currentCenteredIndex) return;
 
-    const target = event.target;
-    const isMedia = target && target.classList && target.classList.contains("media-item");
-    const hit = !!(isMedia && pointHitsVisibleMediaPixels(target, event.clientX, event.clientY));
+    const mediaEl = resolveInteractiveMediaTarget(event, card);
+    const x = event.clientX || 0;
+    const y = event.clientY || 0;
+    const hit = !!(mediaEl && (!x || !y || pointHitsVisibleMediaPixels(mediaEl, x, y)));
 
     const mediaNodes = [];
-    if (card._els && card._els.frame) {
-      mediaNodes.push(...card._els.frame.querySelectorAll(".media-item"));
-    }
-    if (card._els && card._els.lightbox) {
-      mediaNodes.push(...card._els.lightbox.querySelectorAll(".media-item"));
-    }
+    if (card._els && card._els.frame) mediaNodes.push(...card._els.frame.querySelectorAll(".media-item"));
+    if (card._els && card._els.lightbox) mediaNodes.push(...card._els.lightbox.querySelectorAll(".media-item"));
 
     mediaNodes.forEach((node) => node.classList.remove("is-media-clickable-zone"));
-
-    if (hit && target.classList) {
-      target.classList.add("is-media-clickable-zone");
-    }
+    if (hit) mediaNodes.forEach((node) => node.classList.add("is-media-clickable-zone"));
   }
 
   function clearVisibleMediaHoverCursor(index) {
