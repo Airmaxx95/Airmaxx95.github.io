@@ -3335,9 +3335,9 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v127 — mobile Collection matches Cart structure
+   v128 — mobile Collection delayed close fade
    Built on v122 baseline. Mobile only.
-   Outer nav shell stays inert like cart; inner body fades.
+   Uses frozen shell dimensions + delayed class removal so opacity can animate.
    ========================================================= */
 @media (max-width: 768px) {
   .nav-panel {
@@ -3348,7 +3348,8 @@ body.is-booting #panelDesc {
     overflow: visible !important;
   }
 
-  .nav-panel.is-open {
+  .nav-panel.is-open,
+  .nav-panel.is-closing {
     width: 0 !important;
     height: 0 !important;
     max-height: none !important;
@@ -3361,6 +3362,12 @@ body.is-booting #panelDesc {
     pointer-events: none !important;
     overflow: hidden !important;
     transition: opacity 220ms ease !important;
+    will-change: opacity !important;
+  }
+
+  .nav-panel.is-open .nav-panel-inner,
+  .nav-panel.is-closing .nav-panel-inner {
+    max-height: calc(62vh - 70px) !important;
   }
 
   .nav-panel.is-open .nav-panel-inner {
@@ -3369,7 +3376,7 @@ body.is-booting #panelDesc {
   }
 
   .nav-panel.is-closing .nav-panel-inner,
-  .nav-panel:not(.is-open) .nav-panel-inner {
+  .nav-panel:not(.is-open):not(.is-closing) .nav-panel-inner {
     opacity: 0 !important;
     pointer-events: none !important;
   }
@@ -3388,7 +3395,8 @@ body.is-booting #panelDesc {
     overflow: visible !important;
   }
 
-  .nav-panel.is-open {
+  .nav-panel.is-open,
+  .nav-panel.is-closing {
     width: 0 !important;
     height: 0 !important;
     max-height: none !important;
@@ -3401,6 +3409,12 @@ body.is-booting #panelDesc {
     pointer-events: none !important;
     overflow: hidden !important;
     transition: opacity 220ms ease !important;
+    will-change: opacity !important;
+  }
+
+  .nav-panel.is-open .nav-panel-inner,
+  .nav-panel.is-closing .nav-panel-inner {
+    max-height: calc(58vh - 66px) !important;
   }
 
   .nav-panel.is-open .nav-panel-inner {
@@ -3409,7 +3423,7 @@ body.is-booting #panelDesc {
   }
 
   .nav-panel.is-closing .nav-panel-inner,
-  .nav-panel:not(.is-open) .nav-panel-inner {
+  .nav-panel:not(.is-open):not(.is-closing) .nav-panel-inner {
     opacity: 0 !important;
     pointer-events: none !important;
   }
@@ -5514,13 +5528,27 @@ body.is-booting #panelDesc {
     if (!navPanel) return;
     updateNavPanelMaxHeight();
 
-    navPanel.classList.toggle("is-open", isOpen);
-    navPanel.classList.remove("is-closing");
+    if (isOpen) {
+      navPanel.classList.remove("is-closing");
+      navPanel.classList.add("is-open");
+      if (navPanelToggle) {
+        navPanelToggle.setAttribute("aria-expanded", "true");
+        navPanelToggle.textContent = "Close";
+      }
+      return;
+    }
+
+    navPanel.classList.add("is-closing");
+    navPanel.classList.remove("is-open");
 
     if (navPanelToggle) {
-      navPanelToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      navPanelToggle.textContent = isOpen ? "Close" : "Collection";
+      navPanelToggle.setAttribute("aria-expanded", "false");
+      navPanelToggle.textContent = "Collection";
     }
+
+    window.setTimeout(() => {
+      navPanel.classList.remove("is-closing");
+    }, 220);
   }
 
   function goToSlideAbsolute(targetIndex) {
