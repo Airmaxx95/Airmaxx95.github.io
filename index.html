@@ -3333,6 +3333,67 @@ body.is-booting #panelDesc {
   pointer-events: none !important;
 }
 
+
+/* =========================================================
+   v123 — mobile Collection panel matches Cart panel behavior
+   Built on v122 baseline. Mobile only.
+   ========================================================= */
+@media (max-width: 768px) {
+  .nav-panel {
+    pointer-events: none !important;
+  }
+
+  .nav-panel.is-open {
+    pointer-events: auto !important;
+  }
+
+  .nav-panel-inner {
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 220ms ease !important;
+  }
+
+  .nav-panel.is-open .nav-panel-inner {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .nav-panel:not(.is-open) .nav-panel-inner,
+  .nav-panel.is-closing .nav-panel-inner {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-panel {
+    pointer-events: none !important;
+  }
+
+  .nav-panel.is-open {
+    pointer-events: auto !important;
+  }
+
+  .nav-panel-inner {
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 220ms ease !important;
+  }
+
+  .nav-panel.is-open .nav-panel-inner {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .nav-panel:not(.is-open) .nav-panel-inner,
+  .nav-panel.is-closing .nav-panel-inner {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
 </style>
 
 
@@ -5428,22 +5489,12 @@ body.is-booting #panelDesc {
     if (!navPanel) return;
     updateNavPanelMaxHeight();
 
-    if (isOpen) {
-      navPanel.classList.add("is-open");
-      navPanel.classList.remove("is-closing");
-      if (navPanelToggle) {
-        navPanelToggle.setAttribute("aria-expanded", "true");
-        navPanelToggle.textContent = "Close";
-      }
-      return;
-    }
-
-    navPanel.classList.remove("is-open");
+    navPanel.classList.toggle("is-open", isOpen);
     navPanel.classList.remove("is-closing");
 
     if (navPanelToggle) {
-      navPanelToggle.setAttribute("aria-expanded", "false");
-      navPanelToggle.textContent = "Collection";
+      navPanelToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      navPanelToggle.textContent = isOpen ? "Close" : "Collection";
     }
   }
 
