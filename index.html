@@ -3379,6 +3379,47 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v125 — mobile Collection panel fades like Cart while keeping toggle clickable
+   Built on v124 baseline. Mobile only.
+   ========================================================= */
+@media (max-width: 768px) {
+  .nav-panel-inner {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 220ms ease !important;
+  }
+
+  .nav-panel.is-open .nav-panel-inner {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .nav-panel.is-closing .nav-panel-inner {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-panel-inner {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 220ms ease !important;
+  }
+
+  .nav-panel.is-open .nav-panel-inner {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .nav-panel.is-closing .nav-panel-inner {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
 </style>
 
 
@@ -5474,13 +5515,26 @@ body.is-booting #panelDesc {
     if (!navPanel) return;
     updateNavPanelMaxHeight();
 
-    navPanel.classList.toggle("is-open", isOpen);
-    navPanel.classList.remove("is-closing");
-
-    if (navPanelToggle) {
-      navPanelToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      navPanelToggle.textContent = isOpen ? "Close" : "Collection";
+    if (isOpen) {
+      navPanel.classList.remove("is-closing");
+      navPanel.classList.add("is-open");
+      if (navPanelToggle) {
+        navPanelToggle.setAttribute("aria-expanded", "true");
+        navPanelToggle.textContent = "Close";
+      }
+      return;
     }
+
+    navPanel.classList.add("is-closing");
+    if (navPanelToggle) {
+      navPanelToggle.setAttribute("aria-expanded", "false");
+      navPanelToggle.textContent = "Collection";
+    }
+
+    window.setTimeout(() => {
+      navPanel.classList.remove("is-open");
+      navPanel.classList.remove("is-closing");
+    }, 220);
   }
 
   function goToSlideAbsolute(targetIndex) {
