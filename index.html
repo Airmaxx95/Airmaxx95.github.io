@@ -3476,11 +3476,11 @@ body.is-booting #panelDesc {
   }
 
   function getTouchMoveStrength() {
-    return isMobileTouchViewport() ? 0.58 : 0.28;
+    return isMobileTouchViewport() ? 0.82 : 0.28;
   }
 
   function getTouchReleaseBoost() {
-    return isMobileTouchViewport() ? 0.42 : 0.0;
+    return isMobileTouchViewport() ? 0.68 : 0.0;
   }
 
   function markRecentTouchScroll() {
@@ -5984,7 +5984,7 @@ body.is-booting #panelDesc {
   window.addEventListener("touchend", () => {
     if (touchGestureMoved) {
       velocity += touchGestureLastDy * getTouchReleaseBoost();
-      targetVelocity += touchGestureTotalDy * 0.02;
+      targetVelocity += touchGestureTotalDy * 0.035;
       markRecentTouchScroll();
       start();
     }
