@@ -4456,75 +4456,35 @@ body.is-booting #panelDesc {
 
   let lastLightboxMediaTriggerAt = 0;
 
-  function getEventClientPoint(event) {
-    if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
-      return { x: event.clientX, y: event.clientY };
-    }
-
-    const touch =
-      (event && event.changedTouches && event.changedTouches[0]) ||
-      (event && event.touches && event.touches[0]);
-
-    if (touch && Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) {
-      return { x: touch.clientX, y: touch.clientY };
-    }
-
-    const target = event && event.target && event.target.getBoundingClientRect
-      ? event.target
-      : null;
-
-    if (target) {
-      const rect = target.getBoundingClientRect();
-      return {
-        x: rect.left + (rect.width / 2),
-        y: rect.top + (rect.height / 2)
-      };
-    }
-
-    return { x: 0, y: 0 };
+  function isUiClickTarget(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(
+      ".panel, .panel-actions, .nav-panel, .cart-drawer, .cart-toggle, .site-footer, .footer-terms-panel, .footer-about-panel, .btn, button, a, input, select, textarea"
+    );
   }
 
-  function resolveEventMediaNode(event) {
-    const rawTarget = event && event.target;
-    if (!rawTarget || !rawTarget.closest) return null;
+  function shouldCycleSlideMedia(index, event) {
+    const card = cards[index];
+    if (!card || index !== currentCenteredIndex) return false;
+    if (!event || !event.target) return false;
+    if (isUiClickTarget(event.target)) return false;
 
-    const directMedia = rawTarget.closest(".media-item");
-    if (directMedia) return directMedia;
+    const hitSlideSurface = !!event.target.closest(
+      ".card, .media-frame, .lightbox-stage, .media-item, .video-loading-shell, .video-loading-overlay, .video-loading-panel"
+    );
 
-    const loadingShell = rawTarget.closest(".video-loading-shell");
-    if (loadingShell) {
-      const nestedMedia = loadingShell.querySelector(".media-item");
-      if (nestedMedia) return nestedMedia;
-    }
-
-    const transitionWrap = rawTarget.closest(".lightbox-transition-media");
-    if (transitionWrap) {
-      const nestedMedia = transitionWrap.querySelector(".media-item");
-      if (nestedMedia) return nestedMedia;
-    }
-
-    const frameOrStage = rawTarget.closest(".media-frame, .lightbox-stage");
-    if (frameOrStage) {
-      return frameOrStage.querySelector(".media-item");
-    }
-
-    return null;
+    return hitSlideSurface;
   }
 
   function handleVisibleMediaClick(index, event) {
-    const card = cards[index];
-    if (!card || index !== currentCenteredIndex) return;
-
     const now = Date.now();
-    if ((event.type === "click" || event.type === "pointerup") && now - lastLightboxMediaTriggerAt < 250) {
+
+    if ((event.type === "click" || event.type === "pointerup" || event.type === "touchend") &&
+        now - lastLightboxMediaTriggerAt < 250) {
       return;
     }
 
-    const mediaNode = resolveEventMediaNode(event);
-    if (!mediaNode) return;
-
-    const point = getEventClientPoint(event);
-    if (!pointHitsVisibleMediaPixels(mediaNode, point.x, point.y)) return;
+    if (!shouldCycleSlideMedia(index, event)) return;
 
     lastLightboxMediaTriggerAt = now;
     cycleLightbox(index);
@@ -4533,10 +4493,6 @@ body.is-booting #panelDesc {
   function updateVisibleMediaHoverCursor(index, event) {
     const card = cards[index];
     if (!card || index !== currentCenteredIndex) return;
-
-    const mediaNode = resolveEventMediaNode(event);
-    const point = getEventClientPoint(event);
-    const hit = !!(mediaNode && pointHitsVisibleMediaPixels(mediaNode, point.x, point.y));
 
     const mediaNodes = [];
     if (card._els && card._els.frame) {
@@ -4548,8 +4504,8 @@ body.is-booting #panelDesc {
 
     mediaNodes.forEach((node) => node.classList.remove("is-media-clickable-zone"));
 
-    if (hit && mediaNode.classList) {
-      mediaNode.classList.add("is-media-clickable-zone");
+    if (event && event.target && !isUiClickTarget(event.target) && event.target.closest(".card, .media-frame, .lightbox-stage, .media-item, .video-loading-shell")) {
+      mediaNodes.forEach((node) => node.classList.add("is-media-clickable-zone"));
     }
   }
 
@@ -4694,12 +4650,9 @@ body.is-booting #panelDesc {
       card.append(frame, lightbox, fade);
       card._fade = fade;
 
-      frame.addEventListener("click", (event) => handleVisibleMediaClick(index, event));
-      lightbox.addEventListener("click", (event) => handleVisibleMediaClick(index, event));
-      frame.addEventListener("pointerup", (event) => handleVisibleMediaClick(index, event));
-      lightbox.addEventListener("pointerup", (event) => handleVisibleMediaClick(index, event));
-      frame.addEventListener("touchend", (event) => handleVisibleMediaClick(index, event), { passive: true });
-      lightbox.addEventListener("touchend", (event) => handleVisibleMediaClick(index, event), { passive: true });
+      card.addEventListener("click", (event) => handleVisibleMediaClick(index, event));
+      card.addEventListener("pointerup", (event) => handleVisibleMediaClick(index, event));
+      card.addEventListener("touchend", (event) => handleVisibleMediaClick(index, event), { passive: true });
       frame.addEventListener("mousemove", (event) => updateVisibleMediaHoverCursor(index, event));
       lightbox.addEventListener("mousemove", (event) => updateVisibleMediaHoverCursor(index, event));
       frame.addEventListener("mouseleave", () => clearVisibleMediaHoverCursor(index));
