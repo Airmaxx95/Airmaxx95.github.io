@@ -3333,29 +3333,6 @@ body.is-booting #panelDesc {
   pointer-events: none !important;
 }
 
-
-/* =========================================================
-   v106f — transparent slide hit-target for lightbox cycling
-   Built on v105 baseline.
-   Adds a browser-robust click/tap layer over slide media.
-   ========================================================= */
-.lightbox-hit-target {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  appearance: none;
-  cursor: pointer;
-  display: block;
-}
-
-.lightbox-hit-target:focus {
-  outline: none;
-}
-
 </style>
 
 
@@ -4478,23 +4455,24 @@ body.is-booting #panelDesc {
   }
 
   function handleVisibleMediaClick(index, event) {
-    triggerLightboxHitTarget(index, event);
+    triggerVisibleMediaCycle(index, event);
   }
 
   function updateVisibleMediaHoverCursor(index, event) {
     const card = cards[index];
     if (!card || index !== currentCenteredIndex) return;
 
+    const target = event && event.target;
+    const hit = !!(target && target.closest && target.closest(".media-item, .video-loading-shell, .video-loading-overlay, .video-loading-panel"));
+
     const mediaNodes = [];
-    if (card._els && card._els.frame) {
-      mediaNodes.push(...card._els.frame.querySelectorAll(".media-item"));
-    }
-    if (card._els && card._els.lightbox) {
-      mediaNodes.push(...card._els.lightbox.querySelectorAll(".media-item"));
-    }
+    if (card._els && card._els.frame) mediaNodes.push(...card._els.frame.querySelectorAll(".media-item"));
+    if (card._els && card._els.lightbox) mediaNodes.push(...card._els.lightbox.querySelectorAll(".media-item"));
 
     mediaNodes.forEach((node) => node.classList.remove("is-media-clickable-zone"));
-    mediaNodes.forEach((node) => node.classList.add("is-media-clickable-zone"));
+    if (hit) {
+      mediaNodes.forEach((node) => node.classList.add("is-media-clickable-zone"));
+    }
   }
 
   function clearVisibleMediaHoverCursor(index) {
@@ -4635,19 +4613,16 @@ body.is-booting #panelDesc {
 
       const fade = document.createElement('div');
       fade.className = 'fade-overlay';
-
-      const hitTarget = document.createElement("button");
-      hitTarget.type = "button";
-      hitTarget.className = "lightbox-hit-target";
-      hitTarget.setAttribute("aria-label", "Next image");
-      hitTarget.addEventListener("click", (event) => triggerLightboxHitTarget(index, event));
-      hitTarget.addEventListener("touchend", (event) => triggerLightboxHitTarget(index, event), { passive: true });
-      hitTarget.addEventListener("mouseup", (event) => triggerLightboxHitTarget(index, event));
-
-      card.append(frame, lightbox, hitTarget, fade);
+      card.append(frame, lightbox, fade);
       card._fade = fade;
-      card._hitTarget = hitTarget;
 
+      frame.addEventListener("click", (event) => triggerVisibleMediaCycle(index, event));
+      lightbox.addEventListener("click", (event) => triggerVisibleMediaCycle(index, event));
+      frame.addEventListener("mouseup", (event) => triggerVisibleMediaCycle(index, event));
+      lightbox.addEventListener("mouseup", (event) => triggerVisibleMediaCycle(index, event));
+      card.addEventListener("touchstart", (event) => beginSlideTap(index, event), { passive: true });
+      card.addEventListener("touchmove", (event) => moveSlideTap(event), { passive: true });
+      card.addEventListener("touchend", (event) => endSlideTap(index, event), { passive: true });
       frame.addEventListener("mousemove", (event) => updateVisibleMediaHoverCursor(index, event));
       lightbox.addEventListener("mousemove", (event) => updateVisibleMediaHoverCursor(index, event));
       frame.addEventListener("mouseleave", () => clearVisibleMediaHoverCursor(index));
@@ -5639,40 +5614,106 @@ body.is-booting #panelDesc {
   // =========================================================
   // LIGHTBOX
   // =========================================================
-  let lastLightboxHitTargetTriggerAt = 0;
+  const slideTapState = { activeIndex: null, startX: 0, startY: 0, moved: false };
+  let lastVisibleMediaCycleAt = 0;
 
-  function triggerLightboxHitTarget(index, event) {
-    if (index !== currentCenteredIndex) return;
+  function shouldIgnoreSlideMediaEvent(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(
+      ".panel, .nav-panel, .cart-drawer, .site-footer, .lightbox-controls, .lightbox-topbar, .btn, button, a, input, select, textarea"
+    );
+  }
 
-    const target = event && event.target;
-    if (target && target.closest && target.closest(".panel, .nav-panel, .cart-drawer, .site-footer, .lightbox-controls, .lightbox-topbar, .btn, a, input, select, textarea")) {
-      return;
+  function replaceCardMediaNode(container, newNode) {
+    if (!container) return;
+    const existing = container.querySelector(":scope > .media-item, :scope > .video-loading-shell");
+    if (existing) {
+      stopMediaNode(existing);
+      existing.replaceWith(newNode);
+    } else {
+      container.prepend(newNode);
+    }
+  }
+
+  function syncVisibleSlideMedia(index) {
+    const product = PRODUCTS[index];
+    const card = cards[index];
+    if (!product || !card || !card._els) return;
+
+    const media = product.media[product.lightboxIndex];
+    if (!media) return;
+
+    const frameNode = createMediaElement(media, { autoplay: true, muted: true, loop: true });
+    replaceCardMediaNode(card._els.frame, frameNode);
+    card._els.frameMedia = frameNode;
+
+    if (product.lightboxOpen && card._els.lightbox) {
+      const stageNode = createMediaElement(media, { autoplay: true, muted: true, loop: true });
+      replaceCardMediaNode(card._els.lightbox, stageNode);
+      card._els.stageMedia = stageNode;
     }
 
+    if (card._els.topbarMeta) {
+      card._els.topbarMeta.textContent = `${product.title} • ${product.lightboxIndex + 1} / ${product.media.length}`;
+    }
+
+    if (index === currentCenteredIndex) {
+      syncPanelSelectionToCurrentMedia(product);
+    }
+  }
+
+  function triggerVisibleMediaCycle(index, event) {
+    if (index !== currentCenteredIndex) return;
+    if (shouldIgnoreSlideMediaEvent(event && event.target)) return;
+
     const now = Date.now();
-    if (now - lastLightboxHitTargetTriggerAt < 250) return;
-    lastLightboxHitTargetTriggerAt = now;
+    if (now - lastVisibleMediaCycleAt < 250) return;
+    lastVisibleMediaCycleAt = now;
 
     cycleLightbox(index);
+  }
+
+  function beginSlideTap(index, event) {
+    const touch = (event.touches && event.touches[0]) || event;
+    if (!touch) return;
+    slideTapState.activeIndex = index;
+    slideTapState.startX = touch.clientX || 0;
+    slideTapState.startY = touch.clientY || 0;
+    slideTapState.moved = false;
+  }
+
+  function moveSlideTap(event) {
+    if (slideTapState.activeIndex === null) return;
+    const touch = (event.touches && event.touches[0]) || event;
+    if (!touch) return;
+    const dx = Math.abs((touch.clientX || 0) - slideTapState.startX);
+    const dy = Math.abs((touch.clientY || 0) - slideTapState.startY);
+    if (dx > 12 || dy > 12) slideTapState.moved = true;
+  }
+
+  function endSlideTap(index, event) {
+    const touch = (event.changedTouches && event.changedTouches[0]) || event;
+    if (!touch) return;
+    if (slideTapState.activeIndex != index) return;
+    const dx = Math.abs((touch.clientX || 0) - slideTapState.startX);
+    const dy = Math.abs((touch.clientY || 0) - slideTapState.startY);
+    const moved = slideTapState.moved || dx > 12 || dy > 12;
+    slideTapState.activeIndex = null;
+    slideTapState.moved = false;
+    if (moved) return;
+    triggerVisibleMediaCycle(index, event);
   }
 
   function cycleLightbox(index) {
     const product = PRODUCTS[index];
     const card = cards[index];
     if (!product || !card || !product.media.length || !card._els) return;
-    if (card._els.isMediaTransitioning) return;
 
     const total = product.media.length;
-
-    // Open lightbox first without firing an extra media swap
-    if (!product.lightboxOpen) {
-      product.lightboxOpen = true;
-      card.classList.add("is-lightbox-open");
-    }
-
     const nextIndex = (product.lightboxIndex + 1) % total;
     product.lightboxIndex = nextIndex;
-    swapLightboxMedia(index);
+
+    syncVisibleSlideMedia(index);
   }
 
   function openLightbox(index) {
