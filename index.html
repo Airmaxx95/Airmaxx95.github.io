@@ -3333,6 +3333,29 @@ body.is-booting #panelDesc {
   pointer-events: none !important;
 }
 
+
+/* =========================================================
+   v106f — transparent slide hit-target for lightbox cycling
+   Built on v105 baseline.
+   Adds a browser-robust click/tap layer over slide media.
+   ========================================================= */
+.lightbox-hit-target {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  appearance: none;
+  cursor: pointer;
+  display: block;
+}
+
+.lightbox-hit-target:focus {
+  outline: none;
+}
+
 </style>
 
 
@@ -4454,46 +4477,13 @@ body.is-booting #panelDesc {
     );
   }
 
-  let lastSurfaceLightboxTriggerAt = 0;
-
-  function shouldIgnoreSurfaceLightboxEvent(target) {
-    if (!target || !target.closest) return false;
-    return !!target.closest(
-      ".panel, .nav-panel, .cart-drawer, .site-footer, .lightbox-controls, .lightbox-topbar, .btn, button, a, input, select, textarea"
-    );
-  }
-
-  function triggerLightboxFromSurface(index, event) {
-    if (index !== currentCenteredIndex) return;
-    if (shouldIgnoreSurfaceLightboxEvent(event && event.target)) return;
-
-    const now = Date.now();
-    if (now - lastSurfaceLightboxTriggerAt < 250) return;
-    lastSurfaceLightboxTriggerAt = now;
-
-    cycleLightbox(index);
-  }
-
   function handleVisibleMediaClick(index, event) {
-    const card = cards[index];
-    if (!card || index !== currentCenteredIndex) return;
-
-    const target = event && event.target;
-    if (!target) return;
-    if (shouldIgnoreSurfaceLightboxEvent(target)) return;
-
-    const isMediaSurface = !!target.closest(".media-frame, .lightbox-stage, .media-item, .video-loading-shell, .video-loading-overlay, .video-loading-panel");
-    if (!isMediaSurface) return;
-
-    triggerLightboxFromSurface(index, event);
+    triggerLightboxHitTarget(index, event);
   }
 
   function updateVisibleMediaHoverCursor(index, event) {
     const card = cards[index];
     if (!card || index !== currentCenteredIndex) return;
-
-    const target = event && event.target;
-    const hit = !!(target && !shouldIgnoreSurfaceLightboxEvent(target) && target.closest(".media-frame, .lightbox-stage, .media-item, .video-loading-shell, .video-loading-overlay, .video-loading-panel"));
 
     const mediaNodes = [];
     if (card._els && card._els.frame) {
@@ -4504,10 +4494,7 @@ body.is-booting #panelDesc {
     }
 
     mediaNodes.forEach((node) => node.classList.remove("is-media-clickable-zone"));
-
-    if (hit) {
-      mediaNodes.forEach((node) => node.classList.add("is-media-clickable-zone"));
-    }
+    mediaNodes.forEach((node) => node.classList.add("is-media-clickable-zone"));
   }
 
   function clearVisibleMediaHoverCursor(index) {
@@ -4648,15 +4635,19 @@ body.is-booting #panelDesc {
 
       const fade = document.createElement('div');
       fade.className = 'fade-overlay';
-      card.append(frame, lightbox, fade);
-      card._fade = fade;
 
-      frame.addEventListener("click", (event) => triggerLightboxFromSurface(index, event));
-      lightbox.addEventListener("click", (event) => triggerLightboxFromSurface(index, event));
-      frame.addEventListener("touchend", (event) => triggerLightboxFromSurface(index, event), { passive: true });
-      lightbox.addEventListener("touchend", (event) => triggerLightboxFromSurface(index, event), { passive: true });
-      frame.addEventListener("mouseup", (event) => triggerLightboxFromSurface(index, event));
-      lightbox.addEventListener("mouseup", (event) => triggerLightboxFromSurface(index, event));
+      const hitTarget = document.createElement("button");
+      hitTarget.type = "button";
+      hitTarget.className = "lightbox-hit-target";
+      hitTarget.setAttribute("aria-label", "Next image");
+      hitTarget.addEventListener("click", (event) => triggerLightboxHitTarget(index, event));
+      hitTarget.addEventListener("touchend", (event) => triggerLightboxHitTarget(index, event), { passive: true });
+      hitTarget.addEventListener("mouseup", (event) => triggerLightboxHitTarget(index, event));
+
+      card.append(frame, lightbox, hitTarget, fade);
+      card._fade = fade;
+      card._hitTarget = hitTarget;
+
       frame.addEventListener("mousemove", (event) => updateVisibleMediaHoverCursor(index, event));
       lightbox.addEventListener("mousemove", (event) => updateVisibleMediaHoverCursor(index, event));
       frame.addEventListener("mouseleave", () => clearVisibleMediaHoverCursor(index));
@@ -5648,6 +5639,23 @@ body.is-booting #panelDesc {
   // =========================================================
   // LIGHTBOX
   // =========================================================
+  let lastLightboxHitTargetTriggerAt = 0;
+
+  function triggerLightboxHitTarget(index, event) {
+    if (index !== currentCenteredIndex) return;
+
+    const target = event && event.target;
+    if (target && target.closest && target.closest(".panel, .nav-panel, .cart-drawer, .site-footer, .lightbox-controls, .lightbox-topbar, .btn, a, input, select, textarea")) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastLightboxHitTargetTriggerAt < 250) return;
+    lastLightboxHitTargetTriggerAt = now;
+
+    cycleLightbox(index);
+  }
+
   function cycleLightbox(index) {
     const product = PRODUCTS[index];
     const card = cards[index];
