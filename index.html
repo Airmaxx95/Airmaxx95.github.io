@@ -3335,12 +3335,28 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v126 — mobile Collection panel true cart-like fade
+   v127 — mobile Collection matches Cart structure
    Built on v122 baseline. Mobile only.
+   Outer nav shell stays inert like cart; inner body fades.
    ========================================================= */
 @media (max-width: 768px) {
+  .nav-panel {
+    width: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .nav-panel.is-open {
+    width: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+  }
+
   .nav-panel-inner {
-    max-height: calc(var(--nav-open-max-height, 520px) - 34px) !important;
+    width: min(320px, calc(100vw - 20px)) !important;
+    max-height: calc(62vh - 70px) !important;
     opacity: 0 !important;
     pointer-events: none !important;
     overflow: hidden !important;
@@ -3359,12 +3375,27 @@ body.is-booting #panelDesc {
   }
 
   .nav-grid {
-    max-height: calc(var(--nav-open-max-height, 520px) - 34px - 18px) !important;
+    max-height: calc(62vh - 98px) !important;
   }
 }
 
 @media (max-width: 480px) {
+  .nav-panel {
+    width: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .nav-panel.is-open {
+    width: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+  }
+
   .nav-panel-inner {
+    width: min(320px, calc(100vw - 16px)) !important;
     max-height: calc(58vh - 66px) !important;
     opacity: 0 !important;
     pointer-events: none !important;
