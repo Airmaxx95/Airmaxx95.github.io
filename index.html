@@ -3448,6 +3448,27 @@ body.is-booting #panelDesc {
   visibility: visible;
 }
 
+
+/* =========================================================
+   v129 — header full layout ready fix
+   Built on v128 baseline.
+   Avoid Safari desktop horizontal snap by revealing header only
+   after layout/fonts/logo are ready, with no visible entry animation.
+   ========================================================= */
+.site-header {
+  visibility: hidden;
+  opacity: 0 !important;
+  animation: none !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+
+.site-header.is-ready {
+  visibility: visible;
+  opacity: 1 !important;
+  animation: none !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+
 </style>
 
 
@@ -3654,15 +3675,29 @@ body.is-booting #panelDesc {
     }
   }
 
+  function revealHeaderWhenStable() {
+    const afterFonts = (document.fonts && document.fonts.ready)
+      ? document.fonts.ready.catch(() => {})
+      : Promise.resolve();
+
+    afterFonts.finally(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          markHeaderReady();
+        });
+      });
+    });
+  }
+
   if (siteHeaderLogo) {
     if (siteHeaderLogo.complete) {
-      markHeaderReady();
+      revealHeaderWhenStable();
     } else {
-      siteHeaderLogo.addEventListener("load", markHeaderReady, { once: true });
-      siteHeaderLogo.addEventListener("error", markHeaderReady, { once: true });
+      siteHeaderLogo.addEventListener("load", revealHeaderWhenStable, { once: true });
+      siteHeaderLogo.addEventListener("error", revealHeaderWhenStable, { once: true });
     }
   } else {
-    markHeaderReady();
+    revealHeaderWhenStable();
   }
 
   const navPanel = document.getElementById("navPanel");
