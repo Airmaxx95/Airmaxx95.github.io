@@ -3395,6 +3395,44 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v126 — mobile lightbox fade slower
+   Built on v125 baseline. Mobile only.
+   Softer media crossfade for iPhone Safari/Chrome.
+   ========================================================= */
+@media (max-width: 768px) {
+  .card.is-lightbox-open .media-item,
+  .card.is-lightbox-open img.media-item,
+  .card.is-lightbox-open video.media-item,
+  .card.is-lightbox-open .lightbox-media,
+  .card.is-lightbox-open .media-frame > * {
+    transition:
+      opacity 420ms ease !important,
+      transform 420ms ease !important;
+    will-change: opacity, transform;
+  }
+
+  .card.is-lightbox-open .media-item.is-entering,
+  .card.is-lightbox-open .media-item.is-leaving {
+    transition:
+      opacity 420ms ease !important,
+      transform 420ms ease !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .card.is-lightbox-open .media-item,
+  .card.is-lightbox-open img.media-item,
+  .card.is-lightbox-open video.media-item,
+  .card.is-lightbox-open .lightbox-media,
+  .card.is-lightbox-open .media-frame > * {
+    transition:
+      opacity 460ms ease !important,
+      transform 460ms ease !important;
+  }
+}
+
 </style>
 
 
