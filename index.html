@@ -3335,18 +3335,11 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v123 — mobile Collection panel matches Cart panel behavior
+   v124 — restore mobile Collection button interaction
    Built on v122 baseline. Mobile only.
+   Keep Collection panel fade logic closer to Cart without blocking the toggle.
    ========================================================= */
 @media (max-width: 768px) {
-  .nav-panel {
-    pointer-events: none !important;
-  }
-
-  .nav-panel.is-open {
-    pointer-events: auto !important;
-  }
-
   .nav-panel-inner {
     overflow: hidden !important;
     opacity: 0 !important;
@@ -3359,22 +3352,14 @@ body.is-booting #panelDesc {
     pointer-events: auto !important;
   }
 
-  .nav-panel:not(.is-open) .nav-panel-inner,
-  .nav-panel.is-closing .nav-panel-inner {
+  .nav-panel.is-closing .nav-panel-inner,
+  .nav-panel:not(.is-open) .nav-panel-inner {
     opacity: 0 !important;
     pointer-events: none !important;
   }
 }
 
 @media (max-width: 480px) {
-  .nav-panel {
-    pointer-events: none !important;
-  }
-
-  .nav-panel.is-open {
-    pointer-events: auto !important;
-  }
-
   .nav-panel-inner {
     overflow: hidden !important;
     opacity: 0 !important;
@@ -3387,8 +3372,8 @@ body.is-booting #panelDesc {
     pointer-events: auto !important;
   }
 
-  .nav-panel:not(.is-open) .nav-panel-inner,
-  .nav-panel.is-closing .nav-panel-inner {
+  .nav-panel.is-closing .nav-panel-inner,
+  .nav-panel:not(.is-open) .nav-panel-inner {
     opacity: 0 !important;
     pointer-events: none !important;
   }
