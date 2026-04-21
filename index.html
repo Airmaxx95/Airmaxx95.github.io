@@ -3358,6 +3358,57 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v124 — mobile CTA sale-state colors match desktop
+   Built on v123 baseline. Mobile only.
+   Mirror desktop CTA colors for notforsale / archive / soldout.
+   ========================================================= */
+@media (max-width: 768px) {
+  .panel-actions-mobile-detached .action-primary.is-out-of-stock,
+  .panel-actions-mobile-detached .action-primary.is-out-of-stock:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="soldout"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="soldout"]:disabled {
+    background: rgba(255,255,255,0.18) !important;
+    color: rgba(255,255,255,0.95) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.95) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    cursor: default !important;
+  }
+
+  .panel-actions-mobile-detached .action-primary[data-sale-state="archive"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="archive"]:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="notforsale"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="notforsale"]:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="not_for_sale"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="not_for_sale"]:disabled {
+    background: rgba(255,255,255,0.18) !important;
+    color: rgba(255,255,255,0.95) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.95) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    cursor: default !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-actions-mobile-detached .action-primary.is-out-of-stock,
+  .panel-actions-mobile-detached .action-primary.is-out-of-stock:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="soldout"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="soldout"]:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="archive"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="archive"]:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="notforsale"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="notforsale"]:disabled,
+  .panel-actions-mobile-detached .action-primary[data-sale-state="not_for_sale"],
+  .panel-actions-mobile-detached .action-primary[data-sale-state="not_for_sale"]:disabled {
+    background: rgba(255,255,255,0.18) !important;
+    color: rgba(255,255,255,0.95) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.95) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    cursor: default !important;
+  }
+}
+
 </style>
 
 
@@ -6126,6 +6177,7 @@ body.is-booting #panelDesc {
   if (primaryActionBtnMobile) {
     primaryActionBtnMobile.addEventListener("click", () => {
       addCurrentProductToCart();
+    primaryActionBtnMobile.dataset.saleState = String(product.saleState || "").toLowerCase();
     });
   }
 
