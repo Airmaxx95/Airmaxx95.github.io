@@ -3482,6 +3482,37 @@ body.is-booting #panelDesc {
   letter-spacing:0 !important;
 }
 
+
+/* =========================================================
+   v132 — mobile Collection cart fade runtime override
+   Built on approved v131 baseline.
+   Force mobile Collection to fade like Cart by overriding legacy
+   nav-panel sizing/choreography at runtime.
+   ========================================================= */
+@media (max-width: 768px) {
+  .nav-panel {
+    width: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .nav-panel.is-open,
+  .nav-panel.is-closing {
+    width: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .nav-panel-inner {
+    overflow: hidden !important;
+    transition: opacity 220ms ease !important;
+  }
+}
+
 </style>
 
 
@@ -3653,6 +3684,14 @@ body.is-booting #panelDesc {
   window.addEventListener('resize', () => {
     applyResponsiveSpacing();
     updateNavPanelMaxHeight();
+    if (isMobileNavFadeViewport() && navPanel && navPanel.classList.contains("is-open")) {
+      applyMobileNavPanelShellOverride();
+      const navInner = applyMobileNavPanelBodyOverride();
+      if (navInner) {
+        navInner.style.setProperty("opacity", "1", "important");
+        navInner.style.setProperty("pointer-events", "auto", "important");
+      }
+    }
     scheduleIdleAutoSettle();
   });
 
@@ -5645,27 +5684,113 @@ body.is-booting #panelDesc {
     navPanel.style.setProperty("--nav-open-max-height", `${maxHeight}px`);
   }
 
+
+  function isMobileNavFadeViewport() {
+    return window.innerWidth <= 768;
+  }
+
+  function getMobileNavPanelMetrics() {
+    if (window.innerWidth <= 480) {
+      return {
+        width: "calc(100vw - 16px)",
+        maxHeight: "calc(100vh - 40px)",
+        gridMaxHeight: "calc(100vh - 40px - 34px - 18px)"
+      };
+    }
+    return {
+      width: "min(320px, calc(100vw - 20px))",
+      maxHeight: "calc(100vh - 44px)",
+      gridMaxHeight: "calc(100vh - 44px - 34px - 18px)"
+    };
+  }
+
+  function applyMobileNavPanelShellOverride() {
+    if (!navPanel) return;
+    navPanel.style.setProperty("width", "0", "important");
+    navPanel.style.setProperty("height", "0", "important");
+    navPanel.style.setProperty("max-height", "none", "important");
+    navPanel.style.setProperty("padding", "0", "important");
+    navPanel.style.setProperty("overflow", "visible", "important");
+  }
+
+  function applyMobileNavPanelBodyOverride() {
+    const navInner = navPanel ? navPanel.querySelector(".nav-panel-inner") : null;
+    if (!navInner) return null;
+
+    const metrics = getMobileNavPanelMetrics();
+    navInner.style.setProperty("position", "absolute", "important");
+    navInner.style.setProperty("top", "34px", "important");
+    navInner.style.setProperty("left", "0", "important");
+    navInner.style.setProperty("width", metrics.width, "important");
+    navInner.style.setProperty("max-height", metrics.maxHeight, "important");
+    navInner.style.setProperty("overflow", "hidden", "important");
+    navInner.style.setProperty("opacity", "0", "important");
+    navInner.style.setProperty("pointer-events", "none", "important");
+    navInner.style.setProperty("transition", "opacity 220ms ease", "important");
+
+    if (navGrid) {
+      navGrid.style.setProperty("max-height", metrics.gridMaxHeight, "important");
+      navGrid.style.setProperty("overflow-y", "auto", "important");
+    }
+
+    return navInner;
+  }
+
   function setNavPanelOpen(isOpen) {
     if (!navPanel) return;
     updateNavPanelMaxHeight();
 
-    if (isOpen) {
-      navPanel.classList.add("is-open");
+    if (!isMobileNavFadeViewport()) {
+      navPanel.classList.toggle("is-open", isOpen);
       navPanel.classList.remove("is-closing");
       if (navPanelToggle) {
-        navPanelToggle.setAttribute("aria-expanded", "true");
-        navPanelToggle.textContent = "Close";
+        navPanelToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        navPanelToggle.textContent = isOpen ? "Close" : "Collection";
       }
       return;
     }
 
-    navPanel.classList.remove("is-open");
+    applyMobileNavPanelShellOverride();
+    const navInner = applyMobileNavPanelBodyOverride();
+    if (!navInner) return;
+
+    if (navPanel._closeTimer) {
+      window.clearTimeout(navPanel._closeTimer);
+      navPanel._closeTimer = null;
+    }
+
     navPanel.classList.remove("is-closing");
+
+    if (isOpen) {
+      navPanel.classList.add("is-open");
+      if (navPanelToggle) {
+        navPanelToggle.setAttribute("aria-expanded", "true");
+        navPanelToggle.textContent = "Close";
+      }
+
+      navInner.style.setProperty("opacity", "0", "important");
+      navInner.style.setProperty("pointer-events", "none", "important");
+      void navInner.offsetHeight;
+      requestAnimationFrame(() => {
+        navInner.style.setProperty("opacity", "1", "important");
+        navInner.style.setProperty("pointer-events", "auto", "important");
+      });
+      return;
+    }
 
     if (navPanelToggle) {
       navPanelToggle.setAttribute("aria-expanded", "false");
       navPanelToggle.textContent = "Collection";
     }
+
+    navPanel.classList.add("is-closing");
+    navInner.style.setProperty("pointer-events", "none", "important");
+    navInner.style.setProperty("opacity", "0", "important");
+
+    navPanel._closeTimer = window.setTimeout(() => {
+      navPanel.classList.remove("is-open");
+      navPanel.classList.remove("is-closing");
+    }, 220);
   }
 
   function goToSlideAbsolute(targetIndex) {
