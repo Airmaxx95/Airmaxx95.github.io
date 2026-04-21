@@ -3335,39 +3335,16 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v128 — mobile Collection delayed close fade
+   v126 — mobile Collection panel true cart-like fade
    Built on v122 baseline. Mobile only.
-   Uses frozen shell dimensions + delayed class removal so opacity can animate.
    ========================================================= */
 @media (max-width: 768px) {
-  .nav-panel {
-    width: 0 !important;
-    height: 0 !important;
-    max-height: none !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  .nav-panel.is-open,
-  .nav-panel.is-closing {
-    width: 0 !important;
-    height: 0 !important;
-    max-height: none !important;
-  }
-
   .nav-panel-inner {
-    width: min(320px, calc(100vw - 20px)) !important;
-    max-height: calc(62vh - 70px) !important;
+    max-height: calc(var(--nav-open-max-height, 520px) - 34px) !important;
     opacity: 0 !important;
     pointer-events: none !important;
     overflow: hidden !important;
     transition: opacity 220ms ease !important;
-    will-change: opacity !important;
-  }
-
-  .nav-panel.is-open .nav-panel-inner,
-  .nav-panel.is-closing .nav-panel-inner {
-    max-height: calc(62vh - 70px) !important;
   }
 
   .nav-panel.is-open .nav-panel-inner {
@@ -3376,45 +3353,23 @@ body.is-booting #panelDesc {
   }
 
   .nav-panel.is-closing .nav-panel-inner,
-  .nav-panel:not(.is-open):not(.is-closing) .nav-panel-inner {
+  .nav-panel:not(.is-open) .nav-panel-inner {
     opacity: 0 !important;
     pointer-events: none !important;
   }
 
   .nav-grid {
-    max-height: calc(62vh - 98px) !important;
+    max-height: calc(var(--nav-open-max-height, 520px) - 34px - 18px) !important;
   }
 }
 
 @media (max-width: 480px) {
-  .nav-panel {
-    width: 0 !important;
-    height: 0 !important;
-    max-height: none !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  .nav-panel.is-open,
-  .nav-panel.is-closing {
-    width: 0 !important;
-    height: 0 !important;
-    max-height: none !important;
-  }
-
   .nav-panel-inner {
-    width: min(320px, calc(100vw - 16px)) !important;
     max-height: calc(58vh - 66px) !important;
     opacity: 0 !important;
     pointer-events: none !important;
     overflow: hidden !important;
     transition: opacity 220ms ease !important;
-    will-change: opacity !important;
-  }
-
-  .nav-panel.is-open .nav-panel-inner,
-  .nav-panel.is-closing .nav-panel-inner {
-    max-height: calc(58vh - 66px) !important;
   }
 
   .nav-panel.is-open .nav-panel-inner {
@@ -3423,7 +3378,7 @@ body.is-booting #panelDesc {
   }
 
   .nav-panel.is-closing .nav-panel-inner,
-  .nav-panel:not(.is-open):not(.is-closing) .nav-panel-inner {
+  .nav-panel:not(.is-open) .nav-panel-inner {
     opacity: 0 !important;
     pointer-events: none !important;
   }
@@ -5528,27 +5483,13 @@ body.is-booting #panelDesc {
     if (!navPanel) return;
     updateNavPanelMaxHeight();
 
-    if (isOpen) {
-      navPanel.classList.remove("is-closing");
-      navPanel.classList.add("is-open");
-      if (navPanelToggle) {
-        navPanelToggle.setAttribute("aria-expanded", "true");
-        navPanelToggle.textContent = "Close";
-      }
-      return;
-    }
-
-    navPanel.classList.add("is-closing");
-    navPanel.classList.remove("is-open");
+    navPanel.classList.toggle("is-open", isOpen);
+    navPanel.classList.remove("is-closing");
 
     if (navPanelToggle) {
-      navPanelToggle.setAttribute("aria-expanded", "false");
-      navPanelToggle.textContent = "Collection";
+      navPanelToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      navPanelToggle.textContent = isOpen ? "Close" : "Collection";
     }
-
-    window.setTimeout(() => {
-      navPanel.classList.remove("is-closing");
-    }, 220);
   }
 
   function goToSlideAbsolute(targetIndex) {
