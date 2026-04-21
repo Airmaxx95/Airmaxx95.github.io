@@ -10,14 +10,16 @@
     "Visible_On_Site": "TRUE",
     "Sale_State": "for_sale",
     "Variant_Mode": "size",
-    "Variant_Stock_JSON": "{\"S\":12,\"M\":14,\"L\":12,\"XL\":12}",
-    "Stock_Total_Optional": "50",
+    "Variant_Stock_JSON": "{\"S\":0,\"M\":14,\"L\":12,\"XL\":12}",
+    "Stock_Total_Optional": "38",
     "Slug": "Example Tee 1 ",
     "Description_Short": "á Spread collar\ná Button closure\ná Logo graphic embroidered at chest and sleeve\ná Text bonded at front\ná Shirttail hem\ná Button barrel cuffs\ná Text embroidered at back",
     "Notes": "1 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "3.00",
-    "Media_Colour_Map": ""
+    "Media_Colour_Map": "",
+    "site_about": "TEST ABOUT\nPaletteKnife is an independent UK label presenting limited editions, garments, objects and curated works through a motion-led digital storefront. Each release is produced in considered quantities, balancing visual identity, rarity and material presence. The project values atmosphere, pace and deliberate presentation over fast retail conventions. Products may appear once, return in altered form, or disappear entirely. We aim to create pieces that feel collected rather than simply purchased. Thank you for visiting and supporting independent work built outside template culture.",
+    "site_terms": "TEST PROCESSING\nAllow 3-5 working days for orders to be processed unless stated otherwise in a product description.\n\nDELIVERY\n3-5 days for Mainland UK\n\n3-7 days for EU countries\n\n5-10 days for the Rest of the World\n\nRETURNS\nAll Sales Final.\n\nYou have 14 days to return your order from receiving shipment.\n\nWe offer an exchange or store credit only policy, unless item is damaged upon delivery.\n\nCONTACT\nFor any inquiries, contact us at studio@paletteknife.uk\n\nPlease allow up to 24-48 hours for a response to your inquiry."
   },
   {
     "ASN": "EX-2026-00002",
@@ -30,14 +32,16 @@
     "Visible_On_Site": "TRUE",
     "Sale_State": "for_sale",
     "Variant_Mode": "colour",
-    "Variant_Stock_JSON": "{\"Green\":10, \"Yellow\":10}",
-    "Stock_Total_Optional": "20",
+    "Variant_Stock_JSON": "{\"Green\":0, \"Yellow\":10}",
+    "Stock_Total_Optional": "10",
     "Slug": "Example Tee 2",
     "Description_Short": "2 This is a Test for the website ",
     "Notes": "2 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "4.00",
-    "Media_Colour_Map": "green|yellow|"
+    "Media_Colour_Map": "green|yellow|",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00003",
@@ -50,14 +54,16 @@
     "Visible_On_Site": "TRUE",
     "Sale_State": "for_sale",
     "Variant_Mode": "colour_size",
-    "Variant_Stock_JSON": "{\"Brown\":{\"S\":12,\"M\":14,\"L\":12,\"XL\":12},\"Sepia\":{\"S\":12,\"M\":14,\"L\":12,\"XL\":12}}",
-    "Stock_Total_Optional": "100",
+    "Variant_Stock_JSON": "{\"Brown\":{\"S\":0,\"M\":14,\"L\":12,\"XL\":12},\"Sepia\":{\"S\":12,\"M\":0,\"L\":12,\"XL\":12}}",
+    "Stock_Total_Optional": "74",
     "Slug": "Example Tee 3",
     "Description_Short": "3 This is a Test for the website ",
     "Notes": "3 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "5.00",
-    "Media_Colour_Map": "sepia|brown|"
+    "Media_Colour_Map": "sepia|brown|",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00004",
@@ -77,7 +83,9 @@
     "Notes": "4 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "6.00",
-    "Media_Colour_Map": ""
+    "Media_Colour_Map": "",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00005",
@@ -97,7 +105,9 @@
     "Notes": "5 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "7.00",
-    "Media_Colour_Map": ""
+    "Media_Colour_Map": "",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00006",
@@ -117,7 +127,9 @@
     "Notes": "6 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "8.00",
-    "Media_Colour_Map": "green|yellow|"
+    "Media_Colour_Map": "green|yellow|",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00007",
@@ -137,7 +149,9 @@
     "Notes": "7 None",
     "Date_Added": "2026-05-15",
     "Sort_Order": "9.00",
-    "Media_Colour_Map": ""
+    "Media_Colour_Map": "",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00008",
@@ -147,7 +161,7 @@
     "Edition_Display": "",
     "Image_Path": "media/ex-2026-00002/main.webp",
     "Lightbox_Paths": "media/ex-2026-00002/detail-1.webp|media/ex-2026-00002/video-1.mp4",
-    "Visible_On_Site": "TRUE",
+    "Visible_On_Site": "FALSE",
     "Sale_State": "media_only",
     "Variant_Mode": "colour",
     "Variant_Stock_JSON": "{\"Green\":10, \"Yellow\":10}",
@@ -157,7 +171,9 @@
     "Notes": "",
     "Date_Added": "2026-05-15",
     "Sort_Order": "1.00",
-    "Media_Colour_Map": ""
+    "Media_Colour_Map": "",
+    "site_about": "",
+    "site_terms": ""
   },
   {
     "ASN": "EX-2026-00009",
@@ -177,6 +193,8 @@
     "Notes": "",
     "Date_Added": "2026-05-15",
     "Sort_Order": "2.00",
-    "Media_Colour_Map": ""
+    "Media_Colour_Map": "",
+    "site_about": "",
+    "site_terms": ""
   }
 ]
