@@ -3739,6 +3739,53 @@ body.is-booting #panelDesc {
     terms: ""
   };
 
+  const CTA_CHECKOUT_STATE = {
+    productId: "",
+    selectionKey: ""
+  };
+
+  function getSelectionKey(product, selection) {
+    if (!product) return "";
+    const chosen = selection || getProductSelection(product);
+    return [
+      product.id,
+      normalizeOptionKey(chosen && chosen.colour),
+      normalizeOptionKey(chosen && chosen.size)
+    ].join("|");
+  }
+
+  function cartHasItemKey(key) {
+    if (!key) return false;
+    return CART.items.some((item) => item && item.key === key);
+  }
+
+  function setCheckoutCtaState(product, selection) {
+    if (!product) return;
+    CTA_CHECKOUT_STATE.productId = String(product.id || "");
+    CTA_CHECKOUT_STATE.selectionKey = getSelectionKey(product, selection);
+  }
+
+  function clearCheckoutCtaState() {
+    CTA_CHECKOUT_STATE.productId = "";
+    CTA_CHECKOUT_STATE.selectionKey = "";
+  }
+
+  function shouldShowProceedToCheckout(product) {
+    if (!product) return false;
+    if (!CTA_CHECKOUT_STATE.productId || !CTA_CHECKOUT_STATE.selectionKey) return false;
+    if (String(product.id || "") !== CTA_CHECKOUT_STATE.productId) return false;
+    return cartHasItemKey(CTA_CHECKOUT_STATE.selectionKey);
+  }
+
+  function proceedToCheckoutFromCta() {
+    if (typeof cartCheckout !== "undefined" && cartCheckout) {
+      cartCheckout.click();
+      return;
+    }
+    alert("Checkout wiring is next. Cart state is now working and saved locally.");
+  }
+
+
   function normalizeOptionKey(value) {
     return String(value || "").trim().toLowerCase();
   }
@@ -3953,8 +4000,14 @@ body.is-booting #panelDesc {
           CART.items.splice(index, 1);
         }
 
+        if (!cartHasItemKey(CTA_CHECKOUT_STATE.selectionKey)) {
+          clearCheckoutCtaState();
+        }
+
         saveCart();
         renderCart();
+        renderPanel(currentCenteredIndex);
+        syncDetachedMobileCTANextFrame();
       });
     });
   }
@@ -4189,20 +4242,12 @@ body.is-booting #panelDesc {
 
     setPanelValidationMessage("");
 
+    setCheckoutCtaState(product, selection);
     saveCart();
     renderCart();
     renderPanel(currentCenteredIndex);
+    syncDetachedMobileCTANextFrame();
     setCartDrawerOpen(true);
-
-    if (primaryActionBtn) {
-      const original = primaryActionBtn.textContent;
-      primaryActionBtn.textContent = "Added";
-      primaryActionBtn.classList.add("is-added");
-      setTimeout(() => {
-        primaryActionBtn.textContent = original;
-        primaryActionBtn.classList.remove("is-added");
-      }, 900);
-    }
   }
 
   // =========================================================
@@ -5585,10 +5630,17 @@ body.is-booting #panelDesc {
           const stateAllowsPurchase = state === "for_sale" || state === "for sale" || state === "forsale" || state === "preorder" || state === "pre order" || state === "pre_order";
           const missingSelectionState = validation.message === "Select a colour." || validation.message === "Select a size." || validation.message === "Select a size & colour.";
           const selectedVariantOutOfStock = validation.message === "Out of stock.";
+          const proceedToCheckout = stateAllowsPurchase && validation.valid && shouldShowProceedToCheckout(product);
+
           if (selectedVariantOutOfStock && stateAllowsPurchase) {
             primaryActionBtn.textContent = "Out of stock";
             primaryActionBtn.disabled = true;
             primaryActionBtn.classList.add("is-out-of-stock");
+          } else if (proceedToCheckout) {
+            primaryActionBtn.textContent = "Proceed to Checkout";
+            primaryActionBtn.disabled = false;
+            primaryActionBtn.classList.remove("is-out-of-stock");
+            primaryActionBtn.classList.remove("is-added");
           } else {
             primaryActionBtn.textContent = btnText;
             primaryActionBtn.disabled = stateAllowsPurchase ? (!validation.valid && !missingSelectionState) : false;
@@ -6407,6 +6459,11 @@ body.is-booting #panelDesc {
   const primaryActionBtnMobile = document.getElementById("primaryActionBtnMobile");
   if (primaryActionBtnMobile) {
     primaryActionBtnMobile.addEventListener("click", () => {
+      const product = PRODUCTS[currentCenteredIndex];
+      if (shouldShowProceedToCheckout(product)) {
+        proceedToCheckoutFromCta();
+        return;
+      }
       addCurrentProductToCart();
     });
   }
@@ -6437,6 +6494,11 @@ body.is-booting #panelDesc {
   if (primaryActionBtn) {
     primaryActionBtn.addEventListener("click", (event) => {
       event.stopPropagation();
+      const product = PRODUCTS[currentCenteredIndex];
+      if (shouldShowProceedToCheckout(product)) {
+        proceedToCheckoutFromCta();
+        return;
+      }
       addCurrentProductToCart();
     });
   }
