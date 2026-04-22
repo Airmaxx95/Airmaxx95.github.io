@@ -6286,40 +6286,120 @@ body.is-booting #panelDesc {
 
   
 
+
+  let lastUiTouchActionAt = 0;
+
+  function markUiTouchAction() {
+    lastUiTouchActionAt = Date.now();
+  }
+
+  function isSyntheticUiClickAfterTouch() {
+    return (Date.now() - lastUiTouchActionAt) < 500;
+  }
+
+  function shouldIgnoreOutsidePanelTarget(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(
+      "#productPanel, #footerTermsPanel, #footerAboutPanel, .footer-terms-content, .footer-about-content"
+    );
+  }
+
+  function closePanelsFromOutsideTarget(target) {
+    if (shouldIgnoreOutsidePanelTarget(target)) return;
+
+    const cartDrawerBody = document.getElementById("cartDrawerBody");
+
+    if (cartDrawer && cartDrawer.classList.contains("is-open")) {
+      const insideCart =
+        cartDrawerBody?.contains(target) ||
+        cartClose?.contains(target) ||
+        cartToggle?.contains(target);
+      if (!insideCart) {
+        setCartDrawerOpen(false);
+      }
+    }
+
+    if (navPanel && navPanel.classList.contains("is-open")) {
+      const insideNav =
+        navPanel.contains(target) ||
+        navPanelToggle?.contains(target);
+      if (!insideNav) {
+        setNavPanelOpen(false);
+      }
+    }
+  }
+
+  function handleNavTogglePress() {
+    const isOpen = navPanel && navPanel.classList.contains("is-open");
+    if (!isOpen) {
+      setCartDrawerOpen(false);
+      if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
+      if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+    }
+    setNavPanelOpen(!isOpen);
+  }
+
+  function handleCartTogglePress() {
+    const willOpen = !cartDrawer.classList.contains("is-open");
+    if (willOpen) {
+      setNavPanelOpen(false);
+      if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
+      if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+    }
+    setCartDrawerOpen(willOpen);
+  }
+
+  function handleCartClosePress() {
+    setCartDrawerOpen(false);
+  }
+
   if (navPanelToggle) {
     navPanelToggle.addEventListener("click", () => {
-      const isOpen = navPanel && navPanel.classList.contains("is-open");
-      if (!isOpen) {
-        setCartDrawerOpen(false);
-        if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
-        if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
-      }
-      setNavPanelOpen(!isOpen);
+      if (isSyntheticUiClickAfterTouch()) return;
+      handleNavTogglePress();
     });
+
+    navPanelToggle.addEventListener("touchend", (event) => {
+      markUiTouchAction();
+      event.preventDefault();
+      handleNavTogglePress();
+    }, { passive: false });
   }
 
   document.addEventListener("click", (event) => {
-    if (!navPanel || !navPanel.classList.contains("is-open")) return;
-    if (navPanel.contains(event.target)) return;
-    setNavPanelOpen(false);
+    if (isSyntheticUiClickAfterTouch()) return;
+    closePanelsFromOutsideTarget(event.target);
   });
+
+  document.addEventListener("touchend", (event) => {
+    markUiTouchAction();
+    closePanelsFromOutsideTarget(event.target);
+  }, { passive: true });
 
   if (cartToggle) {
     cartToggle.addEventListener("click", () => {
-      const willOpen = !cartDrawer.classList.contains("is-open");
-      if (willOpen) {
-        setNavPanelOpen(false);
-        if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
-        if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
-      }
-      setCartDrawerOpen(willOpen);
+      if (isSyntheticUiClickAfterTouch()) return;
+      handleCartTogglePress();
     });
+
+    cartToggle.addEventListener("touchend", (event) => {
+      markUiTouchAction();
+      event.preventDefault();
+      handleCartTogglePress();
+    }, { passive: false });
   }
 
   if (cartClose) {
     cartClose.addEventListener("click", () => {
-      setCartDrawerOpen(false);
+      if (isSyntheticUiClickAfterTouch()) return;
+      handleCartClosePress();
     });
+
+    cartClose.addEventListener("touchend", (event) => {
+      markUiTouchAction();
+      event.preventDefault();
+      handleCartClosePress();
+    }, { passive: false });
   }
 
   const primaryActionBtnMobile = document.getElementById("primaryActionBtnMobile");
@@ -6339,20 +6419,7 @@ body.is-booting #panelDesc {
     });
   }
 
-  document.addEventListener("click", (event) => {
-    if (!cartDrawer || !cartDrawer.classList.contains("is-open")) return;
 
-    const cartDrawerBody = document.getElementById("cartDrawerBody");
-    if (
-      cartDrawerBody?.contains(event.target) ||
-      cartClose?.contains(event.target) ||
-      cartToggle?.contains(event.target)
-    ) {
-      return;
-    }
-
-    setCartDrawerOpen(false);
-  });
 
   if (cartCheckout) {
     cartCheckout.addEventListener("click", () => {
