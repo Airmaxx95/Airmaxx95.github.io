@@ -3487,6 +3487,43 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v144 — iPhone extended scene + light fringe mask
+   Built on v143 test baseline.
+   Hybrid approach:
+   - keep extended iPhone safe-area scene
+   - add a lighter alpha mask only at fringe edges
+   ========================================================= */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    .scene {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,0,0,0.45) 3.5%,
+        #000 8%,
+        #000 92%,
+        rgba(0,0,0,0.45) 96.5%,
+        transparent 100%
+      ) !important;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,0,0,0.45) 3.5%,
+        #000 8%,
+        #000 92%,
+        rgba(0,0,0,0.45) 96.5%,
+        transparent 100%
+      ) !important;
+      -webkit-mask-repeat: no-repeat !important;
+      mask-repeat: no-repeat !important;
+      -webkit-mask-size: 100% 100% !important;
+      mask-size: 100% 100% !important;
+    }
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
