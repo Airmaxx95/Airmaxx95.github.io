@@ -6287,118 +6287,120 @@ body.is-booting #panelDesc {
   
 
 
-  let lastUiTouchActionAt = 0;
+  let lastPanelTouchHandledAt = 0;
 
-  function markUiTouchAction() {
-    lastUiTouchActionAt = Date.now();
+  function markPanelTouchHandled() {
+    lastPanelTouchHandledAt = Date.now();
   }
 
-  function isSyntheticUiClickAfterTouch() {
-    return (Date.now() - lastUiTouchActionAt) < 500;
+  function isSyntheticPanelClickAfterTouch() {
+    return (Date.now() - lastPanelTouchHandledAt) < 550;
   }
 
-  function shouldIgnoreOutsidePanelTarget(target) {
+  function panelUiPress(event, fn) {
+    if (event) {
+      markPanelTouchHandled();
+      if (typeof event.preventDefault === "function") event.preventDefault();
+      if (typeof event.stopPropagation === "function") event.stopPropagation();
+    }
+    fn();
+  }
+
+  function shouldIgnoreOutsidePanelClose(target) {
     if (!target || !target.closest) return false;
     return !!target.closest(
-      "#productPanel, #footerTermsPanel, #footerAboutPanel, .footer-terms-content, .footer-about-content"
+      "#productPanel, #footerTermsPanel, #footerAboutPanel, .footer-terms-content, .footer-about-content, #primaryActionBtnMobile"
     );
   }
 
   function closePanelsFromOutsideTarget(target) {
-    if (shouldIgnoreOutsidePanelTarget(target)) return;
+    if (shouldIgnoreOutsidePanelClose(target)) return;
 
     const cartDrawerBody = document.getElementById("cartDrawerBody");
+    const insideCart = !!(
+      cartDrawerBody?.contains(target) ||
+      cartClose?.contains(target) ||
+      cartToggle?.contains(target)
+    );
 
-    if (cartDrawer && cartDrawer.classList.contains("is-open")) {
-      const insideCart =
-        cartDrawerBody?.contains(target) ||
-        cartClose?.contains(target) ||
-        cartToggle?.contains(target);
-      if (!insideCart) {
-        setCartDrawerOpen(false);
-      }
-    }
+    const insideNav = !!(
+      navPanel?.contains(target) ||
+      navPanelToggle?.contains(target)
+    );
 
-    if (navPanel && navPanel.classList.contains("is-open")) {
-      const insideNav =
-        navPanel.contains(target) ||
-        navPanelToggle?.contains(target);
-      if (!insideNav) {
-        setNavPanelOpen(false);
-      }
-    }
-  }
-
-  function handleNavTogglePress() {
-    const isOpen = navPanel && navPanel.classList.contains("is-open");
-    if (!isOpen) {
+    if (cartDrawer && cartDrawer.classList.contains("is-open") && !insideCart) {
       setCartDrawerOpen(false);
-      if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
-      if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
     }
-    setNavPanelOpen(!isOpen);
-  }
 
-  function handleCartTogglePress() {
-    const willOpen = !cartDrawer.classList.contains("is-open");
-    if (willOpen) {
+    if (navPanel && navPanel.classList.contains("is-open") && !insideNav) {
       setNavPanelOpen(false);
-      if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
-      if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
     }
-    setCartDrawerOpen(willOpen);
-  }
-
-  function handleCartClosePress() {
-    setCartDrawerOpen(false);
   }
 
   if (navPanelToggle) {
-    navPanelToggle.addEventListener("click", () => {
-      if (isSyntheticUiClickAfterTouch()) return;
-      handleNavTogglePress();
+    const onNavToggle = () => {
+      const isOpen = navPanel && navPanel.classList.contains("is-open");
+      if (!isOpen) {
+        setCartDrawerOpen(false);
+        if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
+        if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+      }
+      setNavPanelOpen(!isOpen);
+    };
+
+    navPanelToggle.addEventListener("click", (event) => {
+      if (isSyntheticPanelClickAfterTouch()) return;
+      panelUiPress(event, onNavToggle);
     });
 
-    navPanelToggle.addEventListener("touchend", (event) => {
-      markUiTouchAction();
-      event.preventDefault();
-      handleNavTogglePress();
+    navPanelToggle.addEventListener("touchstart", (event) => {
+      panelUiPress(event, onNavToggle);
     }, { passive: false });
   }
 
   document.addEventListener("click", (event) => {
-    if (isSyntheticUiClickAfterTouch()) return;
+    if (isSyntheticPanelClickAfterTouch()) return;
     closePanelsFromOutsideTarget(event.target);
   });
 
-  document.addEventListener("touchend", (event) => {
-    markUiTouchAction();
+  document.addEventListener("touchstart", (event) => {
+    markPanelTouchHandled();
     closePanelsFromOutsideTarget(event.target);
   }, { passive: true });
 
   if (cartToggle) {
-    cartToggle.addEventListener("click", () => {
-      if (isSyntheticUiClickAfterTouch()) return;
-      handleCartTogglePress();
+    const onCartToggle = () => {
+      const willOpen = !cartDrawer.classList.contains("is-open");
+      if (willOpen) {
+        setNavPanelOpen(false);
+        if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
+        if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+      }
+      setCartDrawerOpen(willOpen);
+    };
+
+    cartToggle.addEventListener("click", (event) => {
+      if (isSyntheticPanelClickAfterTouch()) return;
+      panelUiPress(event, onCartToggle);
     });
 
-    cartToggle.addEventListener("touchend", (event) => {
-      markUiTouchAction();
-      event.preventDefault();
-      handleCartTogglePress();
+    cartToggle.addEventListener("touchstart", (event) => {
+      panelUiPress(event, onCartToggle);
     }, { passive: false });
   }
 
   if (cartClose) {
-    cartClose.addEventListener("click", () => {
-      if (isSyntheticUiClickAfterTouch()) return;
-      handleCartClosePress();
+    const onCartClose = () => {
+      setCartDrawerOpen(false);
+    };
+
+    cartClose.addEventListener("click", (event) => {
+      if (isSyntheticPanelClickAfterTouch()) return;
+      panelUiPress(event, onCartClose);
     });
 
-    cartClose.addEventListener("touchend", (event) => {
-      markUiTouchAction();
-      event.preventDefault();
-      handleCartClosePress();
+    cartClose.addEventListener("touchstart", (event) => {
+      panelUiPress(event, onCartClose);
     }, { passive: false });
   }
 
@@ -6418,7 +6420,6 @@ body.is-booting #panelDesc {
       }, { passive: eventName !== "pointerdown" });
     });
   }
-
 
 
   if (cartCheckout) {
