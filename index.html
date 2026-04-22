@@ -3457,6 +3457,36 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v143 — iPhone safe-area scene extension test
+   Built on approved v142 baseline.
+   Test the structural alternative to the alpha mask:
+   use more of the iPhone viewport/safe-area and remove the mask.
+   ========================================================= */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    html, body {
+      min-height: 100dvh !important;
+      min-height: -webkit-fill-available !important;
+    }
+
+    .scene {
+      top: calc(0px - env(safe-area-inset-top)) !important;
+      bottom: calc(0px - env(safe-area-inset-bottom)) !important;
+      height: auto !important;
+      min-height: calc(100dvh + env(safe-area-inset-top) + env(safe-area-inset-bottom)) !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      -webkit-mask-size: auto !important;
+      mask-size: auto !important;
+      padding-top: env(safe-area-inset-top) !important;
+      padding-bottom: env(safe-area-inset-bottom) !important;
+      overflow: visible !important;
+    }
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
