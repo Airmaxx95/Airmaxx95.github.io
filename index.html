@@ -3564,6 +3564,27 @@ body.is-booting #panelDesc {
     );
   }
 
+  function isFooterPanelOpen() {
+    const termsPanel = document.getElementById("footerTermsPanel");
+    const aboutPanel = document.getElementById("footerAboutPanel");
+    return !!(
+      (termsPanel && termsPanel.classList.contains("is-open")) ||
+      (aboutPanel && aboutPanel.classList.contains("is-open"))
+    );
+  }
+
+  function isInFooterPanelOrToggle(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(
+      "#footerTermsPanel, #footerAboutPanel, .footer-terms-content, .footer-about-content, #footerTermsToggle, #footerAboutToggle"
+    );
+  }
+
+  function closeFooterPanels() {
+    if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
+    if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+  }
+
   function getTouchMoveStrength() {
     return isMobileTouchViewport() ? 1.95 : 0.28;
   }
@@ -3595,6 +3616,11 @@ body.is-booting #panelDesc {
     scheduleIdleAutoSettle();
   });
 
+  document.addEventListener("click", (event) => {
+    if (isFooterPanelOpen() && !isInFooterPanelOrToggle(event.target)) {
+      closeFooterPanels();
+    }
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       clearIdleAutoSettleTimer();
@@ -6117,6 +6143,10 @@ body.is-booting #panelDesc {
       return;
     }
 
+    if (isFooterPanelOpen() && !isInFooterPanelOrToggle(e.target)) {
+      closeFooterPanels();
+    }
+
     if (e.touches.length) {
       lastY = e.touches[0].clientY;
       lastX = e.touches[0].clientX;
@@ -6129,6 +6159,10 @@ body.is-booting #panelDesc {
   window.addEventListener("touchmove", (e) => {
     if (isInFooterScrollablePanel(e.target)) return;
     if (!e.touches.length || lastY === null) return;
+
+    if (isFooterPanelOpen() && !isInFooterPanelOrToggle(e.target)) {
+      closeFooterPanels();
+    }
 
     const x = e.touches[0].clientX;
     const y = e.touches[0].clientY;
