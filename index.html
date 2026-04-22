@@ -12,6 +12,29 @@
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
 <meta name="theme-color" content="#bab5bd">
 
+<meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_SEARCH_CONSOLE_TOKEN" />
+<script>
+  window.PALETTEKNIFE_GA4_ID = "G-XXXXXXXXXX";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  (function initPaletteKnifeAnalytics() {
+    var measurementId = String(window.PALETTEKNIFE_GA4_ID || "").trim();
+    var hasRealMeasurementId = /^G-[A-Z0-9]+$/i.test(measurementId) && measurementId !== "G-XXXXXXXXXX";
+    window.PALETTEKNIFE_ANALYTICS_ENABLED = hasRealMeasurementId;
+    if (!hasRealMeasurementId) return;
+    gtag("js", new Date());
+    gtag("config", measurementId, {
+      anonymize_ip: true,
+      transport_type: "beacon"
+    });
+    var gaScript = document.createElement("script");
+    gaScript.async = true;
+    gaScript.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId);
+    document.head.appendChild(gaScript);
+  })();
+</script>
+
+
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PaletteKnife">
 <meta property="og:locale" content="en_GB">
@@ -3817,6 +3840,19 @@ body.is-booting #panelDesc {
     terms: ""
   };
 
+
+  function trackAnalyticsEvent(eventName, params) {
+    if (!window.PALETTEKNIFE_ANALYTICS_ENABLED || typeof window.gtag !== "function") return;
+    const safeName = String(eventName || "").trim();
+    if (!safeName) return;
+    const payload = Object.assign({
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+      page_title: document.title
+    }, params || {});
+    window.gtag("event", safeName, payload);
+  }
+
   function normalizeOptionKey(value) {
     return String(value || "").trim().toLowerCase();
   }
@@ -4268,6 +4304,14 @@ body.is-booting #panelDesc {
     renderCart();
     renderPanel(currentCenteredIndex);
     setCartDrawerOpen(true);
+    trackAnalyticsEvent("add_to_cart", {
+      currency: "GBP",
+      value: Number(product.priceValue || 0),
+      item_id: String(product.id || ""),
+      item_name: String(product.title || ""),
+      item_variant: [selection.colour, selection.size].filter(Boolean).join(" / ") || undefined,
+      quantity: 1
+    });
 
     if (primaryActionBtn) {
       const original = primaryActionBtn.textContent;
@@ -4885,6 +4929,14 @@ body.is-booting #panelDesc {
     targetVelocity = 0;
     returningToStart = false;
     anchorTarget = null;
+
+    const trackedProduct = PRODUCTS[dominantIndex];
+    if (trackedProduct) {
+      trackAnalyticsEvent("open_lightbox", {
+        item_id: String(trackedProduct.id || ""),
+        item_name: String(trackedProduct.title || "")
+      });
+    }
 
     cycleLightbox(dominantIndex);
   }
@@ -5795,6 +5847,12 @@ body.is-booting #panelDesc {
       button.appendChild(thumb);
       button.addEventListener("click", (event) => {
         event.stopPropagation();
+        trackAnalyticsEvent("select_item", {
+          item_list_name: "Collection",
+          item_id: String(product.id || ""),
+          item_name: String(product.title || ""),
+          index: index
+        });
         goToSlideAbsolute(index);
         if (window.innerWidth <= 768) {
           setNavPanelOpen(false);
@@ -6454,6 +6512,7 @@ body.is-booting #panelDesc {
         setCartDrawerOpen(false);
         if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
         if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+        trackAnalyticsEvent("open_collection", { source: "nav_toggle" });
       }
       setNavPanelOpen(!isOpen);
     };
@@ -6485,6 +6544,7 @@ body.is-booting #panelDesc {
         setNavPanelOpen(false);
         if (window.setFooterTermsOpen) window.setFooterTermsOpen(false);
         if (window.setFooterAboutOpen) window.setFooterAboutOpen(false);
+        trackAnalyticsEvent("open_cart", { cart_count: getCartCount() });
       }
       setCartDrawerOpen(willOpen);
     };
@@ -6533,6 +6593,11 @@ body.is-booting #panelDesc {
 
   if (cartCheckout) {
     cartCheckout.addEventListener("click", () => {
+      trackAnalyticsEvent("begin_checkout", {
+        currency: "GBP",
+        value: Number(getCartTotal() || 0),
+        items_in_cart: Number(getCartCount() || 0)
+      });
       alert("Checkout wiring is next. Cart state is now working and saved locally.");
     });
   }
@@ -6659,6 +6724,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setFooterAboutOpen(false);
         setNavPanelOpen(false);
         setCartDrawerOpen(false);
+        trackAnalyticsEvent("footer_terms_open", { source: "footer_toggle" });
       }
       setFooterTermsOpen(willOpen);
     });
@@ -6680,6 +6746,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setFooterTermsOpen(false);
         setNavPanelOpen(false);
         setCartDrawerOpen(false);
+        trackAnalyticsEvent("footer_about_open", { source: "footer_toggle" });
       }
       setFooterAboutOpen(willOpen);
     });
