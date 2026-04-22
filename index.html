@@ -13,25 +13,17 @@
 <meta name="theme-color" content="#bab5bd">
 
 <meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_SEARCH_CONSOLE_TOKEN" />
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K2NDGPGBVP"></script>
 <script>
-  window.PALETTEKNIFE_GA4_ID = "G-K2NDGPGBVP";
   window.dataLayer = window.dataLayer || [];
   function gtag(){ dataLayer.push(arguments); }
-  (function initPaletteKnifeAnalytics() {
-    var measurementId = String(window.PALETTEKNIFE_GA4_ID || "").trim();
-    var hasRealMeasurementId = /^G-[A-Z0-9]+$/i.test(measurementId) && measurementId !== "G-K2NDGPGBVP";
-    window.PALETTEKNIFE_ANALYTICS_ENABLED = hasRealMeasurementId;
-    if (!hasRealMeasurementId) return;
-    gtag("js", new Date());
-    gtag("config", measurementId, {
-      anonymize_ip: true,
-      transport_type: "beacon"
-    });
-    var gaScript = document.createElement("script");
-    gaScript.async = true;
-    gaScript.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId);
-    document.head.appendChild(gaScript);
-  })();
+  window.PALETTEKNIFE_GA4_ID = "G-K2NDGPGBVP";
+  window.PALETTEKNIFE_ANALYTICS_ENABLED = true;
+  gtag('js', new Date());
+  gtag('config', 'G-K2NDGPGBVP', {
+    anonymize_ip: true,
+    transport_type: 'beacon'
+  });
 </script>
 
 
