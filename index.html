@@ -6309,7 +6309,7 @@ body.is-booting #panelDesc {
   function shouldIgnoreOutsidePanelClose(target) {
     if (!target || !target.closest) return false;
     return !!target.closest(
-      "#productPanel, #footerTermsPanel, #footerAboutPanel, .footer-terms-content, .footer-about-content, #primaryActionBtnMobile"
+      "#footerTermsPanel, #footerAboutPanel, .footer-terms-content, .footer-about-content"
     );
   }
 
