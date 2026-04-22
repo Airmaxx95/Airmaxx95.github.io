@@ -25,6 +25,7 @@
 <meta name="twitter:image" content="https://www.paletteknife.uk/media/brand/og-image.jpg">
 
 <title>PaletteKnife — Editions & Objects</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
   :root {
     --perspective: 900px;
@@ -217,7 +218,6 @@
     margin-bottom: 12px;
   }
 
-
   .panel-title {
     margin: 0;
     font-size: 24px;
@@ -399,7 +399,6 @@
     margin-right: 6px;
     transform: translateY(1px);
   }
-
 
   .nav-panel {
     position: fixed;
@@ -605,7 +604,6 @@
     }
   }
 
-
   .cart-toggle {
     position: fixed;
     top: 20px;
@@ -650,7 +648,6 @@
 
   .cart-drawer.is-open {
   }
-
 
   .cart-close {
     position: absolute;
@@ -984,7 +981,6 @@
     margin-bottom: 12px;
   }
 
-
     .card {
       width: 90vw;
       max-height: 62vh;
@@ -1054,7 +1050,6 @@
     margin-bottom: 12px;
   }
 
-
     .panel-header-meta {
     display: flex;
     flex-direction: column;
@@ -1101,8 +1096,6 @@
     }
   }
 
-
-
   .left-meta {
     position: fixed;
     left: calc(16px + 18px + 16px);
@@ -1133,7 +1126,6 @@
     color: rgba(0,0,0,0.92);
     text-wrap: balance;
   }
-
 
   @media (max-width: 768px) {
     .left-meta {
@@ -1181,7 +1173,6 @@
   animation: headerDrop 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards, headerFade 220ms ease forwards;
 }
 
-
 @keyframes headerDrop {
   to {
     transform: translateX(-50%) translateY(0);
@@ -1210,7 +1201,6 @@
   font-size: clamp(14px, 1.4vw, 20px);
 }
 
-
 .site-header {
   cursor: pointer;
 }
@@ -1219,9 +1209,6 @@
   font-weight: 400;
   font-size: clamp(14px, 1.4vw, 20px);
 }
-
-
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
 
 .slide-title-display {
   position: fixed;
@@ -1269,7 +1256,6 @@
   }
 }
 
-
   html, body, button, input, select, textarea, .hud, .panel, .panel-title, .panel-price,
   .panel-desc, .panel-label, .pill, .option-chip, .action-primary, .action-secondary,
   .btn, .logo, .slide-title-display {
@@ -1278,12 +1264,9 @@
     font-style: normal !important;
   }
 
-
-
   button {
     font: inherit;
   }
-
 
   ::selection {
     background: #000;
@@ -1294,8 +1277,6 @@
     background: #000;
     color: #fff;
   }
-
-
 
   .site-footer {
     position: fixed;
@@ -1532,7 +1513,6 @@
   .footer-about-content p {
     margin: 0 0 8px 0;
   }
-
 
 /* =========================================================
    TRUE MOBILE LAYOUT PACK — MOBILE ONLY
@@ -1817,7 +1797,6 @@
   }
 }
 
-
 /* =========================================================
    MOBILE EXPERIMENT BRANCH v45 — built on v43 only
    Left meta moves into product panel on mobile only.
@@ -2063,7 +2042,6 @@
   }
 }
 
-
 /* =========================================================
    MOBILE PANEL LOWER + SCROLL FIX — MOBILE EXPERIMENT ONLY
    Built on v45
@@ -2114,7 +2092,6 @@
   }
 }
 
-
 /* =========================================================
    MOBILE PANEL LOGIC + LEFTMETA ORDER — built on v46
    ========================================================= */
@@ -2156,7 +2133,6 @@
   .mobile-panel-meta { margin-top: 8px !important; margin-bottom: 8px !important; }
 }
 
-
 /* =========================================================
    MOBILE PANEL META + SCROLL REAL FIX — built on v48
    ========================================================= */
@@ -2179,11 +2155,9 @@
   }
 }
 
-
 .mobile-panel-meta {
   display: none;
 }
-
 
 /* =========================================================
    MOBILE EXPERIMENT FULL FIX PACK — built on v49
@@ -2304,7 +2278,6 @@
   }
 }
 
-
 /* =========================================================
    v52 MOBILE PANEL META RENDER + ORDER FIX
    Built on v51. Mobile only.
@@ -2340,7 +2313,6 @@
     flex-direction: column !important;
   }
 }
-
 
 /* =========================================================
    v53 MOBILE PRODUCT PANEL SCROLL + CTA CLEARANCE FIX
@@ -2403,7 +2375,6 @@
   }
 }
 
-
 /* =========================================================
    v63 — v53 mobile-only detached CTA
    Desktop untouched.
@@ -2463,7 +2434,6 @@
   }
 }
 
-
 /* =========================================================
    v64 — restore desktop CTA + hide detached CTA for media_nobutton
    Built on v63. Desktop untouched except restoring original CTA.
@@ -2485,7 +2455,6 @@
     display: none !important;
   }
 }
-
 
 /* =========================================================
    v65 — mobile CTA half-height only
@@ -2531,7 +2500,6 @@
   }
 }
 
-
 /* =========================================================
    v66 — raise mobile CTA + product panel only
    Built on v65 baseline. Desktop untouched.
@@ -2555,7 +2523,6 @@
     bottom: 41px !important;
   }
 }
-
 
 /* =========================================================
    v67 — raise CTA + product panel to clear footer
@@ -2581,7 +2548,6 @@
   }
 }
 
-
 /* =========================================================
    v68 — raise CTA + panel a few more pixels
    Built on v67 baseline. Mobile only.
@@ -2606,7 +2572,6 @@
   }
 }
 
-
 /* =========================================================
    v69 — decrease mobile product panel max-height by 1/4
    Built on v68 baseline. Mobile only.
@@ -2622,7 +2587,6 @@
     max-height: 24.75vh !important;
   }
 }
-
 
 /* =========================================================
    v70 — mobile product panel header static
@@ -2657,7 +2621,6 @@
     padding-bottom: 6px !important;
   }
 }
-
 
 /* =========================================================
    v71 — tighten mobile gap between panel-header and variants
@@ -2701,7 +2664,6 @@
     margin-top: 2px !important;
   }
 }
-
 
 /* =========================================================
    v72 — compress mobile header + first variant row more
@@ -2765,7 +2727,6 @@
   }
 }
 
-
 /* =========================================================
    v73 — lower mobile product panel max-height for tighter fit
    Built on v72 baseline. Mobile only.
@@ -2783,7 +2744,6 @@
     padding-bottom: 10px !important;
   }
 }
-
 
 /* =========================================================
    v74 — reduce mobile product panel top padding only
@@ -2813,7 +2773,6 @@
   }
 }
 
-
 /* =========================================================
    v75 — double current mobile panel top padding
    Built on v74 baseline. Mobile only.
@@ -2829,7 +2788,6 @@
     padding-top: 12px !important;
   }
 }
-
 
 /* =========================================================
    v76 — lower non-media_nobutton slides on mobile by ~20%
@@ -2848,7 +2806,6 @@
   }
 }
 
-
 /* =========================================================
    v77 — raise mobile slideTitleDisplay only
    Built on v76 baseline. Mobile only.
@@ -2864,7 +2821,6 @@
     top: 68px !important;
   }
 }
-
 
 /* =========================================================
    v78 — lower mobile slideTitleDisplay slightly
@@ -2882,7 +2838,6 @@
   }
 }
 
-
 /* =========================================================
    v79 — guaranteed lower shift for mobile slideTitleDisplay
    Built on v78 baseline. Mobile only.
@@ -2899,7 +2854,6 @@
   }
 }
 
-
 /* =========================================================
    v80 — lower mobile slideTitleDisplay more
    Built on v79 baseline. Mobile only.
@@ -2915,7 +2869,6 @@
     transform: translateX(-50%) translateY(14px) !important;
   }
 }
-
 
 /* =========================================================
    v81 — raise mobile CTA + product panel by ~20%
@@ -2941,7 +2894,6 @@
   }
 }
 
-
 /* =========================================================
    v82 — raise mobile CTA + panel another ~20%
    Built on v81 baseline. Mobile only.
@@ -2966,7 +2918,6 @@
   }
 }
 
-
 /* =========================================================
    v83 — guaranteed visible raise for mobile CTA + panel
    Built on v82 baseline. Mobile only.
@@ -2990,7 +2941,6 @@
     transform: translateY(-20px) !important;
   }
 }
-
 
 /* =========================================================
    v85 — mobile panelValidation directly below header
@@ -3032,7 +2982,6 @@
   }
 }
 
-
 /* =========================================================
    v86 — mobile panelValidation align right only
    Built on v85 baseline. Mobile only.
@@ -3052,7 +3001,6 @@
     align-self: flex-end !important;
   }
 }
-
 
 /* =========================================================
    v87 — mobile panelValidation static with header
@@ -3078,7 +3026,6 @@
   }
 }
 
-
 /* =========================================================
    v88 — raise mobile panelVariantSection by 10px
    Built on v87 baseline. Mobile only.
@@ -3094,7 +3041,6 @@
     transform: translateY(-10px) !important;
   }
 }
-
 
 /* =========================================================
    v90 — recover from v88 clean lower 20px
@@ -3161,7 +3107,6 @@
   }
 }
 
-
 /* =========================================================
    v92 — hide mobile nav/cart scrollbars safely
    Built on v90 baseline. Mobile only.
@@ -3205,7 +3150,6 @@
   }
 }
 
-
 /* =========================================================
    v94 — exact cart close clone for mobile Collection
    Built on v92 baseline. Mobile only.
@@ -3246,7 +3190,6 @@
     max-height: calc(58vh - 66px) !important;
   }
 }
-
 
 /* =========================================================
    v102 — code-only video loading overlay
@@ -3303,7 +3246,6 @@
   text-transform: uppercase;
 }
 
-
 /* =========================================================
    v103 — startup boot guard prevents first-state UI flash
    Built on v102 baseline.
@@ -3321,7 +3263,6 @@ body.is-booting .nav-close {
   pointer-events: none !important;
 }
 
-
 /* =========================================================
    v104 — hide initial "Preparing product data…" boot flash
    Built on v103 baseline.
@@ -3332,7 +3273,6 @@ body.is-booting #panelDesc {
   visibility: hidden !important;
   pointer-events: none !important;
 }
-
 
 /* =========================================================
    v123 — mobile variant buttons black text
@@ -3357,7 +3297,6 @@ body.is-booting #panelDesc {
     -webkit-text-fill-color: #000 !important;
   }
 }
-
 
 /* =========================================================
    v124c — mobile CTA sale-state root fix
@@ -3394,7 +3333,6 @@ body.is-booting #panelDesc {
     pointer-events: none !important;
   }
 }
-
 
 /* =========================================================
    v126 — mobile lightbox fade slower
@@ -3433,7 +3371,6 @@ body.is-booting #panelDesc {
   }
 }
 
-
 /* =========================================================
    v128 — header load center fix
    Built on v127 baseline.
@@ -3447,7 +3384,6 @@ body.is-booting #panelDesc {
 .site-header.is-ready {
   visibility: visible;
 }
-
 
 /* =========================================================
    v129 — header full layout ready fix
@@ -3469,7 +3405,6 @@ body.is-booting #panelDesc {
   transform: translateX(-50%) translateY(0) !important;
 }
 
-
 /* =========================================================
    v130 — lightbox loading panel restyle
    Built on v129 baseline.
@@ -3483,7 +3418,6 @@ body.is-booting #panelDesc {
 }
 
 </style>
-
 
 <script type="application/ld+json">
 {
@@ -3547,7 +3481,6 @@ body.is-booting #panelDesc {
     <div class="left-meta-description" id="leftMetaDescription"></div>
     <div class="left-meta-asn" id="leftMetaASN"></div>
   </div>
-
 
   <aside class="nav-panel" id="navPanel" aria-label="Site navigation">
     <button class="nav-panel-toggle" id="navPanelToggle" type="button" aria-expanded="false">Collection</button>
@@ -3639,7 +3572,6 @@ body.is-booting #panelDesc {
   function shouldIgnoreLightboxForRecentTouchScroll() {
     return Date.now() < recentTouchScrollUntil;
   }
-
 
   function applyResponsiveSpacing() {
     if (window.innerWidth <= 768) {
@@ -3774,7 +3706,6 @@ body.is-booting #panelDesc {
       "media no button"
     ].includes(value);
   }
-
 
   let PRODUCTS = [];
   let cards = [];
@@ -4099,7 +4030,6 @@ body.is-booting #panelDesc {
     return { valid: true, message: "", stock };
   }
 
-
   function isGreyedSaleState(state) {
     const value = String(state || "").toLowerCase().trim();
     return value === "not_for_sale" ||
@@ -4110,7 +4040,6 @@ body.is-booting #panelDesc {
            value === "soldout" ||
            value === "sold out";
   }
-
 
   function syncDetachedMobileCTANextFrame() {
     requestAnimationFrame(() => {
@@ -5119,8 +5048,6 @@ body.is-booting #panelDesc {
     }, 320);
   }
 
-
-
   // =========================================================
   // PANEL RENDER
   // =========================================================
@@ -5224,7 +5151,6 @@ body.is-booting #panelDesc {
   function setPanelValidationMessage(message) {
     panelValidationMessageOverride = String(message || "").replace(/\.$/, "");
   }
-
 
   function jumpCurrentProductToColourMedia(product, colour) {
     if (!product || !cards[currentCenteredIndex]) return;
@@ -5638,7 +5564,6 @@ body.is-booting #panelDesc {
       .replaceAll("'", "&#39;");
   }
 
-
   // =========================================================
   // NAV PANEL
   // =========================================================
@@ -5841,7 +5766,6 @@ body.is-booting #panelDesc {
     card.style.opacity = opacity.toFixed(4);
     card.style.filter = `blur(${blur.toFixed(2)}px)`;
   }
-
 
   function getCurrentSlideTitle() {
     const product = PRODUCTS[currentCenteredIndex];
@@ -6233,7 +6157,6 @@ body.is-booting #panelDesc {
     touchGestureLastDy = 0;
   }, { passive: true });
 
-
   // =========================================================
   // BOOT
   // =========================================================
@@ -6297,7 +6220,6 @@ body.is-booting #panelDesc {
   }
 
   
-
 
   let lastPanelTouchHandledAt = 0;
 
@@ -6433,7 +6355,6 @@ body.is-booting #panelDesc {
     });
   }
 
-
   if (cartCheckout) {
     cartCheckout.addEventListener("click", () => {
       alert("Checkout wiring is next. Cart state is now working and saved locally.");
@@ -6462,7 +6383,6 @@ body.is-booting #panelDesc {
   }
 
   boot();
-
 
 </script>
 
@@ -6520,7 +6440,6 @@ body.is-booting #panelDesc {
     </aside>
 
   </footer>
-
 
 <script>
 
