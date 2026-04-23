@@ -3845,6 +3845,43 @@ body.is-booting #panelDesc {
     window.gtag("event", safeName, payload);
   }
 
+  let lastTrackedViewItemKey = null;
+
+  function buildAnalyticsItemPayload(product, index, extraParams) {
+    if (!product) return Object.assign({ index: Number(index || 0) }, extraParams || {});
+    const payload = {
+      item_id: String(product.id || ""),
+      item_name: String(product.title || ""),
+      item_category: String(product.productType || product.type || ""),
+      item_variant: String(product.variantMode || ""),
+      sale_state: String(product.saleState || ""),
+      index: Number(index || 0)
+    };
+    return Object.assign(payload, extraParams || {});
+  }
+
+  function trackViewItem(product, index, source) {
+    if (!product) return;
+    const viewKey = [String(product.id || ""), Number(index || 0), String(source || "active_item")].join("::");
+    if (viewKey === lastTrackedViewItemKey) return;
+    lastTrackedViewItemKey = viewKey;
+    trackAnalyticsEvent("view_item", buildAnalyticsItemPayload(product, index, {
+      source: String(source || "active_item")
+    }));
+  }
+
+  function normalizeTrackedHref(value) {
+    try {
+      const url = new URL(value, window.location.origin);
+      url.hash = "";
+      return url.href.replace(/\/$/, "").toLowerCase();
+    } catch (error) {
+      return String(value || "").trim().replace(/\/$/, "").toLowerCase();
+    }
+  }
+
+  const INSTAGRAM_TRACK_URL = normalizeTrackedHref("https://www.instagram.com/paletteknife.uk/");
+
   function normalizeOptionKey(value) {
     return String(value || "").trim().toLowerCase();
   }
@@ -6018,6 +6055,7 @@ body.is-booting #panelDesc {
       renderPanel(currentCenteredIndex);
 
       const currentProduct = PRODUCTS[currentCenteredIndex];
+      trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
       const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
       if (navPanel && navPanel.classList.contains("is-open")) {
         if (hideNavForCurrent) {
@@ -6411,6 +6449,7 @@ body.is-booting #panelDesc {
       currentCenteredIndex = 0;
       setPanelValidationMessage("");
       renderPanel(0, { immediate: true });
+      trackViewItem(PRODUCTS[0], 0, "initial_load");
       loadingState.classList.add("hidden");
       introStart = performance.now();
       introActive = true;
@@ -6606,6 +6645,20 @@ body.is-booting #panelDesc {
       addCurrentProductToCart();
     });
   }
+
+  document.addEventListener("click", (event) => {
+    const link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+    if (!link) return;
+    const normalizedHref = normalizeTrackedHref(link.getAttribute("href") || link.href || "");
+    if (!normalizedHref) return;
+    if (normalizedHref === INSTAGRAM_TRACK_URL || normalizedHref.indexOf("instagram.com/paletteknife.uk") !== -1) {
+      trackAnalyticsEvent("instagram_outbound_click", {
+        destination: link.href || "",
+        link_text: String((link.textContent || "").trim()).slice(0, 120),
+        source: "outbound_link"
+      });
+    }
+  });
 
   // HEADER CLICK -> RESET TO FIRST SLIDE
   const headerEl = document.querySelector('.site-header');
