@@ -3543,38 +3543,42 @@ body.is-booting #panelDesc {
 }
 
 
+
 /* =========================================================
-   v147 WEBGL CHROME HEADER LOGO — desktop-first
-   Uses media/brand/paletteknife_logo.glb with transparent canvas.
-   Mobile keeps the existing static logo fallback for performance.
+   v147c WEBGL CHROME HEADER LOGO — fixed non-layout overlay
+   Desktop-only WebGL canvas overlays the existing header logo.
+   The SVG/WebP logo remains in-flow as fallback and preserves header position.
    ========================================================= */
 .webgl-logo-wrap {
   position: relative;
-  width: clamp(190px, 18vw, 340px);
-  height: clamp(54px, 5.8vw, 96px);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
+  width: auto;
+  height: auto;
   pointer-events: none;
 }
 
 .webgl-logo-canvas {
   position: absolute;
-  inset: -28px -60px;
-  width: calc(100% + 120px);
-  height: calc(100% + 56px);
+  left: 50%;
+  top: 50%;
+  width: clamp(230px, 24vw, 430px);
+  height: clamp(72px, 7.2vw, 120px);
+  transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
   background: transparent;
-  transition: opacity 420ms ease;
-  z-index: 1;
+  transition: opacity 360ms ease;
+  z-index: 3;
 }
 
 .webgl-logo-fallback {
   position: relative;
   z-index: 2;
   display: block;
-  transition: opacity 320ms ease;
+  transition: opacity 240ms ease;
 }
 
 .site-header.is-webgl-logo-ready .webgl-logo-canvas {
@@ -3589,18 +3593,13 @@ body.is-booting #panelDesc {
   opacity: 1;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
   .webgl-logo-canvas {
     display: none !important;
   }
 
-  .webgl-logo-wrap {
-    width: auto;
-    height: auto;
-  }
-
   .site-header.is-webgl-logo-ready .webgl-logo-fallback {
-    opacity: 1;
+    opacity: 1 !important;
   }
 }
 
@@ -3640,10 +3639,7 @@ body.is-booting #panelDesc {
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
       <canvas class="webgl-logo-canvas" id="webglLogoCanvas" aria-hidden="true"></canvas>
-      <picture class="webgl-logo-fallback">
-        <source srcset="media/brand/logo.webp" type="image/webp">
-        <img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo">
-      </picture>
+      <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
     </div>
   </div>
 </header>
@@ -6135,17 +6131,6 @@ body.is-booting #panelDesc {
     }
 
     renderSlideTitle();
-
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("paletteknife:zaxis", {
-        detail: {
-          position,
-          velocity,
-          targetVelocity,
-          centeredIndex: currentCenteredIndex
-        }
-      }));
-    }
   }
 
   function render() {
@@ -6225,6 +6210,15 @@ body.is-booting #panelDesc {
     }
 
     renderAll();
+
+    window.dispatchEvent(new CustomEvent("paletteknife:zaxis", {
+      detail: {
+        position,
+        velocity,
+        targetVelocity,
+        centeredIndex: currentCenteredIndex
+      }
+    }));
 
     if (
       introActive ||
@@ -6904,11 +6898,20 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 <script type="module">
-  // =========================================================
-  // v147 WEBGL CHROME HEADER LOGO
-  // Desktop-first GLB integration. Mobile keeps static fallback.
-  // =========================================================
+  import * as THREE from "three";
+  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+  import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+
   const WEBGL_LOGO_CONFIG = {
     assetPath: "media/brand/paletteknife_logo.glb",
     desktopMinWidth: 901
@@ -6916,6 +6919,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const headerEl = document.getElementById("siteHeader");
   const canvas = document.getElementById("webglLogoCanvas");
+  window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "not_started";
 
   const canAttemptWebGLLogo = () => {
     if (!headerEl || !canvas) return false;
@@ -6923,7 +6927,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
     try {
       const testCanvas = document.createElement("canvas");
-      return !!(testCanvas.getContext("webgl") || testCanvas.getContext("experimental-webgl"));
+      return !!(testCanvas.getContext("webgl2") || testCanvas.getContext("webgl") || testCanvas.getContext("experimental-webgl"));
     } catch (error) {
       return false;
     }
@@ -6931,18 +6935,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (!canAttemptWebGLLogo()) {
     if (headerEl) headerEl.classList.add("is-webgl-logo-fallback");
+    window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "fallback_capability";
   } else {
-    const startWebGLLogo = async () => {
+    const run = async () => {
       try {
-        const [
-          THREE,
-          { GLTFLoader },
-          { RoomEnvironment }
-        ] = await Promise.all([
-          import("https://esm.sh/three@0.160.0"),
-          import("https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.160.0"),
-          import("https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js?deps=three@0.160.0")
-        ]);
+        window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "loading";
 
         const renderer = new THREE.WebGLRenderer({
           canvas,
@@ -6950,64 +6947,53 @@ document.addEventListener('DOMContentLoaded', function () {
           antialias: true,
           powerPreference: "high-performance"
         });
-
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.45;
+        renderer.toneMappingExposure = 1.75;
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
-        camera.position.set(0, 0.16, 4.2);
+        const camera = new THREE.PerspectiveCamera(24, 1, 0.01, 100);
+        camera.position.set(0, 0, 3.1);
 
         const pmrem = new THREE.PMREMGenerator(renderer);
         scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 
-        const fill = new THREE.HemisphereLight(0xffffff, 0xbab5bd, 1.1);
-        scene.add(fill);
+        const ambient = new THREE.HemisphereLight(0xffffff, 0xbab5bd, 1.45);
+        scene.add(ambient);
 
-        const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
-        keyLight.position.set(2.5, 2.2, 3.2);
+        const keyLight = new THREE.DirectionalLight(0xffffff, 6.2);
+        keyLight.position.set(2.3, 2.0, 3.2);
         scene.add(keyLight);
 
-        const movingRim = new THREE.PointLight(0xffffff, 7.5, 9, 1.8);
-        movingRim.position.set(-2.4, 1.2, 2.4);
-        scene.add(movingRim);
+        const stripLight = new THREE.PointLight(0xffffff, 11, 9, 1.6);
+        stripLight.position.set(-2.4, 0.9, 2.5);
+        scene.add(stripLight);
 
-        const glintLight = new THREE.PointLight(0xdfe9ff, 4.0, 7, 2.0);
-        glintLight.position.set(1.8, -0.35, 2.8);
+        const glintLight = new THREE.PointLight(0xdde9ff, 6, 7, 1.8);
+        glintLight.position.set(1.8, -0.4, 2.2);
         scene.add(glintLight);
 
         const chromeMaterial = new THREE.MeshPhysicalMaterial({
-          color: 0xf4f4f4,
-          metalness: 1.0,
-          roughness: 0.12,
-          reflectivity: 1.0,
-          clearcoat: 1.0,
-          clearcoatRoughness: 0.06,
-          envMapIntensity: 2.6
+          color: 0xf7f7f7,
+          metalness: 1,
+          roughness: 0.08,
+          reflectivity: 1,
+          clearcoat: 1,
+          clearcoatRoughness: 0.035,
+          envMapIntensity: 3.2
         });
 
-        let logoRoot = null;
-        let scrollState = {
-          position: 0,
-          velocity: 0,
-          targetVelocity: 0,
-          centeredIndex: 0
-        };
-        let pointerTime = 0;
-        let lastFrame = performance.now();
+        const gltf = await new GLTFLoader().loadAsync(WEBGL_LOGO_CONFIG.assetPath);
+        const logoRoot = gltf.scene;
 
-        const loader = new GLTFLoader();
-        const gltf = await loader.loadAsync(WEBGL_LOGO_CONFIG.assetPath);
-        logoRoot = gltf.scene;
         logoRoot.traverse((node) => {
           if (node.isMesh) {
             node.material = chromeMaterial;
+            node.frustumCulled = false;
             node.castShadow = false;
             node.receiveShadow = false;
-            node.frustumCulled = false;
           }
         });
 
@@ -7019,68 +7005,62 @@ document.addEventListener('DOMContentLoaded', function () {
         logoRoot.position.sub(center);
 
         const maxDimension = Math.max(size.x || 1, size.y || 1, size.z || 1);
-        const scale = 2.6 / maxDimension;
-        logoRoot.scale.setScalar(scale);
-        logoRoot.rotation.set(
-          THREE.MathUtils.degToRad(-4),
-          THREE.MathUtils.degToRad(0),
-          THREE.MathUtils.degToRad(0)
-        );
+        logoRoot.scale.setScalar(2.25 / maxDimension);
+        logoRoot.rotation.set(THREE.MathUtils.degToRad(-3), 0, 0);
         scene.add(logoRoot);
+
+        let zaxis = { position: 0, velocity: 0, targetVelocity: 0, centeredIndex: 0 };
+        window.addEventListener("paletteknife:zaxis", (event) => {
+          if (!event.detail) return;
+          zaxis = {
+            position: Number(event.detail.position || 0),
+            velocity: Number(event.detail.velocity || 0),
+            targetVelocity: Number(event.detail.targetVelocity || 0),
+            centeredIndex: Number(event.detail.centeredIndex || 0)
+          };
+        }, { passive: true });
 
         const resize = () => {
           const rect = canvas.getBoundingClientRect();
-          const width = Math.max(1, Math.floor(rect.width));
-          const height = Math.max(1, Math.floor(rect.height));
-          renderer.setSize(width, height, false);
-          camera.aspect = width / height;
+          const w = Math.max(1, Math.floor(rect.width));
+          const h = Math.max(1, Math.floor(rect.height));
+          renderer.setSize(w, h, false);
+          camera.aspect = w / h;
           camera.updateProjectionMatrix();
         };
 
         resize();
         window.addEventListener("resize", resize, { passive: true });
 
-        window.addEventListener("paletteknife:zaxis", (event) => {
-          if (!event || !event.detail) return;
-          scrollState = {
-            position: Number(event.detail.position || 0),
-            velocity: Number(event.detail.velocity || 0),
-            targetVelocity: Number(event.detail.targetVelocity || 0),
-            centeredIndex: Number(event.detail.centeredIndex || 0)
-          };
-          pointerTime = performance.now();
-        }, { passive: true });
-
+        headerEl.classList.remove("is-webgl-logo-fallback");
         headerEl.classList.add("is-webgl-logo-ready");
+        window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "ready";
 
+        let last = performance.now();
         const animate = (now) => {
-          const dt = Math.min(0.05, (now - lastFrame) / 1000);
-          lastFrame = now;
+          const dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          const t = now * 0.001;
+          const velocityPulse = Math.min(1, Math.abs(zaxis.velocity + zaxis.targetVelocity) / 18);
+          const phase = zaxis.position * 0.0009;
 
-          if (logoRoot) {
-            const t = now * 0.001;
-            const velocityPulse = Math.min(1, Math.abs(scrollState.velocity + scrollState.targetVelocity) / 18);
-            const scrollPhase = scrollState.position * 0.00085;
+          logoRoot.rotation.y = Math.sin(t * 0.32 + phase) * 0.052;
+          logoRoot.rotation.x = THREE.MathUtils.degToRad(-3) + Math.sin(t * 0.25 + phase * 0.75) * 0.022;
+          logoRoot.rotation.z = Math.sin(t * 0.2) * 0.01;
 
-            logoRoot.rotation.y = Math.sin(t * 0.35 + scrollPhase) * 0.055;
-            logoRoot.rotation.x = THREE.MathUtils.degToRad(-4) + Math.sin(t * 0.28 + scrollPhase * 0.7) * 0.026;
-            logoRoot.rotation.z = Math.sin(t * 0.22) * 0.012;
-            logoRoot.position.y = Math.sin(t * 0.45) * 0.018;
+          stripLight.position.x = Math.sin(t * 0.88 + phase * 3.2) * 2.8;
+          stripLight.position.y = 0.9 + Math.cos(t * 0.55 + phase * 2.0) * 0.72;
+          stripLight.intensity = 8.5 + velocityPulse * 6.5;
 
-            movingRim.position.x = Math.sin(t * 0.9 + scrollPhase * 3.0) * 2.8;
-            movingRim.position.y = 0.95 + Math.cos(t * 0.55 + scrollPhase * 2.0) * 0.75;
-            movingRim.intensity = 5.8 + (velocityPulse * 5.2);
+          glintLight.position.x = Math.cos(t * 0.75 + phase * 2.6) * 2.1;
+          glintLight.position.y = -0.25 + Math.sin(t * 0.68 + phase * 1.6) * 0.52;
+          glintLight.intensity = 4.8 + velocityPulse * 4.4;
 
-            glintLight.position.x = Math.cos(t * 0.8 + scrollPhase * 2.5) * 2.2;
-            glintLight.position.y = -0.2 + Math.sin(t * 0.7 + scrollPhase * 1.5) * 0.55;
-            glintLight.intensity = 3.0 + (velocityPulse * 4.0);
-
-            chromeMaterial.envMapIntensity = THREE.MathUtils.lerp(
-              chromeMaterial.envMapIntensity,
-              2.4 + velocityPulse * 0.9,
-              Math.min(1, dt * 5)
-            );
-          }
+          chromeMaterial.envMapIntensity = THREE.MathUtils.lerp(
+            chromeMaterial.envMapIntensity,
+            3.0 + velocityPulse * 0.9,
+            Math.min(1, dt * 5)
+          );
 
           renderer.render(scene, camera);
           requestAnimationFrame(animate);
@@ -7089,6 +7069,7 @@ document.addEventListener('DOMContentLoaded', function () {
         requestAnimationFrame(animate);
       } catch (error) {
         console.warn("PaletteKnife WebGL logo fallback activated.", error);
+        window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "fallback_error";
         if (headerEl) {
           headerEl.classList.remove("is-webgl-logo-ready");
           headerEl.classList.add("is-webgl-logo-fallback");
@@ -7096,10 +7077,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     };
 
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-      window.setTimeout(startWebGLLogo, 350);
+    if (document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", () => window.setTimeout(run, 250), { once: true });
     } else {
-      window.addEventListener("load", () => window.setTimeout(startWebGLLogo, 350), { once: true });
+      window.setTimeout(run, 250);
     }
   }
 </script>
