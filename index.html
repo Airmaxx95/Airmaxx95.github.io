@@ -42,6 +42,9 @@
 <meta name="twitter:image" content="https://paletteknife.uk/media/brand/og-image.jpg">
 <meta name="twitter:image:alt" content="PaletteKnife brand preview image">
 
+
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+
 <title>PaletteKnife — Editions & Objects</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
@@ -3543,11 +3546,9 @@ body.is-booting #panelDesc {
 }
 
 
-
 /* =========================================================
-   v147c WEBGL CHROME HEADER LOGO — fixed non-layout overlay
-   Desktop-only WebGL canvas overlays the existing header logo.
-   The SVG/WebP logo remains in-flow as fallback and preserves header position.
+   v147d WEBGL CHROME HEADER LOGO — model-viewer visibility fix
+   Desktop-only GLB render, zero layout shift. Existing SVG/WebP remains fallback.
    ========================================================= */
 .webgl-logo-wrap {
   position: relative;
@@ -3555,52 +3556,34 @@ body.is-booting #panelDesc {
   align-items: center;
   justify-content: center;
   line-height: 0;
-  width: auto;
-  height: auto;
   pointer-events: none;
 }
-
-.webgl-logo-canvas {
+.webgl-logo-model {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: clamp(230px, 24vw, 430px);
-  height: clamp(72px, 7.2vw, 120px);
+  width: clamp(260px, 27vw, 520px);
+  height: clamp(86px, 8.8vw, 150px);
   transform: translate(-50%, -50%);
   opacity: 0;
   pointer-events: none;
+  z-index: 3;
   background: transparent;
   transition: opacity 360ms ease;
-  z-index: 3;
+  --poster-color: transparent;
 }
-
 .webgl-logo-fallback {
   position: relative;
   z-index: 2;
   display: block;
   transition: opacity 240ms ease;
 }
-
-.site-header.is-webgl-logo-ready .webgl-logo-canvas {
-  opacity: 1;
-}
-
-.site-header.is-webgl-logo-ready .webgl-logo-fallback {
-  opacity: 0;
-}
-
-.site-header.is-webgl-logo-fallback .webgl-logo-fallback {
-  opacity: 1;
-}
-
+.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; }
+.site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
+.site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
 @media (max-width: 900px), (prefers-reduced-motion: reduce) {
-  .webgl-logo-canvas {
-    display: none !important;
-  }
-
-  .site-header.is-webgl-logo-ready .webgl-logo-fallback {
-    opacity: 1 !important;
-  }
+  .webgl-logo-model { display: none !important; }
+  .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
 }
 
 </style>
@@ -3638,7 +3621,8 @@ body.is-booting #panelDesc {
 <header class="site-header" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <canvas class="webgl-logo-canvas" id="webglLogoCanvas" aria-hidden="true"></canvas>
+      <model-viewer id="webglLogoModel" class="webgl-logo-model" src="media/brand/paletteknife_logo.glb" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="24deg" exposure="1.45" shadow-intensity="0">
+      </model-viewer>
       <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
     </div>
   </div>
@@ -6210,15 +6194,9 @@ body.is-booting #panelDesc {
     }
 
     renderAll();
-
-    window.dispatchEvent(new CustomEvent("paletteknife:zaxis", {
-      detail: {
-        position,
-        velocity,
-        targetVelocity,
-        centeredIndex: currentCenteredIndex
-      }
-    }));
+    try {
+      window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
+    } catch (error) {}
 
     if (
       introActive ||
@@ -6898,191 +6876,59 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
-<script type="module">
-  import * as THREE from "three";
-  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-  import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-
-  const WEBGL_LOGO_CONFIG = {
-    assetPath: "media/brand/paletteknife_logo.glb",
-    desktopMinWidth: 901
-  };
-
-  const headerEl = document.getElementById("siteHeader");
-  const canvas = document.getElementById("webglLogoCanvas");
+<script>
+(function () {
+  var DESKTOP_MIN_WIDTH = 901;
+  var header = document.getElementById("siteHeader");
+  var model = document.getElementById("webglLogoModel");
   window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "not_started";
-
-  const canAttemptWebGLLogo = () => {
-    if (!headerEl || !canvas) return false;
-    if (window.innerWidth < WEBGL_LOGO_CONFIG.desktopMinWidth) return false;
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-    try {
-      const testCanvas = document.createElement("canvas");
-      return !!(testCanvas.getContext("webgl2") || testCanvas.getContext("webgl") || testCanvas.getContext("experimental-webgl"));
-    } catch (error) {
-      return false;
-    }
-  };
-
-  if (!canAttemptWebGLLogo()) {
-    if (headerEl) headerEl.classList.add("is-webgl-logo-fallback");
-    window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "fallback_capability";
-  } else {
-    const run = async () => {
-      try {
-        window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "loading";
-
-        const renderer = new THREE.WebGLRenderer({
-          canvas,
-          alpha: true,
-          antialias: true,
-          powerPreference: "high-performance"
-        });
-        renderer.setClearColor(0x000000, 0);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.75;
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(24, 1, 0.01, 100);
-        camera.position.set(0, 0, 3.1);
-
-        const pmrem = new THREE.PMREMGenerator(renderer);
-        scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
-
-        const ambient = new THREE.HemisphereLight(0xffffff, 0xbab5bd, 1.45);
-        scene.add(ambient);
-
-        const keyLight = new THREE.DirectionalLight(0xffffff, 6.2);
-        keyLight.position.set(2.3, 2.0, 3.2);
-        scene.add(keyLight);
-
-        const stripLight = new THREE.PointLight(0xffffff, 11, 9, 1.6);
-        stripLight.position.set(-2.4, 0.9, 2.5);
-        scene.add(stripLight);
-
-        const glintLight = new THREE.PointLight(0xdde9ff, 6, 7, 1.8);
-        glintLight.position.set(1.8, -0.4, 2.2);
-        scene.add(glintLight);
-
-        const chromeMaterial = new THREE.MeshPhysicalMaterial({
-          color: 0xf7f7f7,
-          metalness: 1,
-          roughness: 0.08,
-          reflectivity: 1,
-          clearcoat: 1,
-          clearcoatRoughness: 0.035,
-          envMapIntensity: 3.2
-        });
-
-        const gltf = await new GLTFLoader().loadAsync(WEBGL_LOGO_CONFIG.assetPath);
-        const logoRoot = gltf.scene;
-
-        logoRoot.traverse((node) => {
-          if (node.isMesh) {
-            node.material = chromeMaterial;
-            node.frustumCulled = false;
-            node.castShadow = false;
-            node.receiveShadow = false;
-          }
-        });
-
-        const box = new THREE.Box3().setFromObject(logoRoot);
-        const size = new THREE.Vector3();
-        const center = new THREE.Vector3();
-        box.getSize(size);
-        box.getCenter(center);
-        logoRoot.position.sub(center);
-
-        const maxDimension = Math.max(size.x || 1, size.y || 1, size.z || 1);
-        logoRoot.scale.setScalar(2.25 / maxDimension);
-        logoRoot.rotation.set(THREE.MathUtils.degToRad(-3), 0, 0);
-        scene.add(logoRoot);
-
-        let zaxis = { position: 0, velocity: 0, targetVelocity: 0, centeredIndex: 0 };
-        window.addEventListener("paletteknife:zaxis", (event) => {
-          if (!event.detail) return;
-          zaxis = {
-            position: Number(event.detail.position || 0),
-            velocity: Number(event.detail.velocity || 0),
-            targetVelocity: Number(event.detail.targetVelocity || 0),
-            centeredIndex: Number(event.detail.centeredIndex || 0)
-          };
-        }, { passive: true });
-
-        const resize = () => {
-          const rect = canvas.getBoundingClientRect();
-          const w = Math.max(1, Math.floor(rect.width));
-          const h = Math.max(1, Math.floor(rect.height));
-          renderer.setSize(w, h, false);
-          camera.aspect = w / h;
-          camera.updateProjectionMatrix();
-        };
-
-        resize();
-        window.addEventListener("resize", resize, { passive: true });
-
-        headerEl.classList.remove("is-webgl-logo-fallback");
-        headerEl.classList.add("is-webgl-logo-ready");
-        window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "ready";
-
-        let last = performance.now();
-        const animate = (now) => {
-          const dt = Math.min(0.05, (now - last) / 1000);
-          last = now;
-          const t = now * 0.001;
-          const velocityPulse = Math.min(1, Math.abs(zaxis.velocity + zaxis.targetVelocity) / 18);
-          const phase = zaxis.position * 0.0009;
-
-          logoRoot.rotation.y = Math.sin(t * 0.32 + phase) * 0.052;
-          logoRoot.rotation.x = THREE.MathUtils.degToRad(-3) + Math.sin(t * 0.25 + phase * 0.75) * 0.022;
-          logoRoot.rotation.z = Math.sin(t * 0.2) * 0.01;
-
-          stripLight.position.x = Math.sin(t * 0.88 + phase * 3.2) * 2.8;
-          stripLight.position.y = 0.9 + Math.cos(t * 0.55 + phase * 2.0) * 0.72;
-          stripLight.intensity = 8.5 + velocityPulse * 6.5;
-
-          glintLight.position.x = Math.cos(t * 0.75 + phase * 2.6) * 2.1;
-          glintLight.position.y = -0.25 + Math.sin(t * 0.68 + phase * 1.6) * 0.52;
-          glintLight.intensity = 4.8 + velocityPulse * 4.4;
-
-          chromeMaterial.envMapIntensity = THREE.MathUtils.lerp(
-            chromeMaterial.envMapIntensity,
-            3.0 + velocityPulse * 0.9,
-            Math.min(1, dt * 5)
-          );
-
-          renderer.render(scene, camera);
-          requestAnimationFrame(animate);
-        };
-
-        requestAnimationFrame(animate);
-      } catch (error) {
-        console.warn("PaletteKnife WebGL logo fallback activated.", error);
-        window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "fallback_error";
-        if (headerEl) {
-          headerEl.classList.remove("is-webgl-logo-ready");
-          headerEl.classList.add("is-webgl-logo-fallback");
-        }
-      }
-    };
-
-    if (document.readyState === "loading") {
-      window.addEventListener("DOMContentLoaded", () => window.setTimeout(run, 250), { once: true });
-    } else {
-      window.setTimeout(run, 250);
-    }
+  function fallback(reason) {
+    window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "fallback_" + reason;
+    if (header) { header.classList.remove("is-webgl-logo-ready"); header.classList.add("is-webgl-logo-fallback"); }
   }
+  function canUse() {
+    if (!header || !model) return false;
+    if (window.innerWidth < DESKTOP_MIN_WIDTH) return false;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+    try { var c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl") || c.getContext("experimental-webgl")); } catch(e) { return false; }
+  }
+  if (!canUse()) { fallback("capability"); return; }
+  window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "loading";
+  var loaded = false;
+  model.addEventListener("load", function () {
+    loaded = true;
+    window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "ready";
+    header.classList.remove("is-webgl-logo-fallback");
+    header.classList.add("is-webgl-logo-ready");
+  });
+  model.addEventListener("error", function (event) { console.warn("PaletteKnife WebGL logo failed to load", event); fallback("error"); });
+  var zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
+  window.addEventListener("paletteknife:zaxis", function (event) {
+    if (!event.detail) return;
+    zaxis.position = Number(event.detail.position || 0);
+    zaxis.velocity = Number(event.detail.velocity || 0);
+    zaxis.targetVelocity = Number(event.detail.targetVelocity || 0);
+  }, { passive: true });
+  var start = performance.now();
+  function animate(now) {
+    if (!model || window.innerWidth < DESKTOP_MIN_WIDTH) return;
+    var t = (now - start) / 1000;
+    var velocityPulse = Math.min(1, Math.abs(zaxis.velocity + zaxis.targetVelocity) / 20);
+    var phase = zaxis.position * 0.0009;
+    var orbitY = Math.sin(t * 0.23 + phase) * 4.5;
+    var orbitX = 75 + Math.sin(t * 0.18 + phase * 0.7) * 2.2;
+    model.setAttribute("camera-orbit", orbitY.toFixed(3) + "deg " + orbitX.toFixed(3) + "deg auto");
+    model.setAttribute("exposure", (1.45 + velocityPulse * 0.45 + Math.sin(t * 0.8) * 0.04).toFixed(3));
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+  window.setTimeout(function () {
+    if (!loaded && window.PALETTEKNIFE_WEBGL_LOGO_STATUS === "loading") {
+      header.classList.add("is-webgl-logo-fallback");
+      window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "loading_slow_asset";
+    }
+  }, 6500);
+})();
 </script>
 
 </body>
