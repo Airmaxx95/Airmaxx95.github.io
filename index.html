@@ -6939,9 +6939,9 @@ document.addEventListener('DOMContentLoaded', function () {
           { GLTFLoader },
           { RoomEnvironment }
         ] = await Promise.all([
-          import("https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"),
-          import("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"),
-          import("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js")
+          import("https://esm.sh/three@0.160.0"),
+          import("https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.160.0"),
+          import("https://esm.sh/three@0.160.0/examples/jsm/environments/RoomEnvironment.js?deps=three@0.160.0")
         ]);
 
         const renderer = new THREE.WebGLRenderer({
@@ -7096,8 +7096,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     };
 
-    if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(startWebGLLogo, { timeout: 2200 });
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      window.setTimeout(startWebGLLogo, 350);
     } else {
       window.addEventListener("load", () => window.setTimeout(startWebGLLogo, 350), { once: true });
     }
