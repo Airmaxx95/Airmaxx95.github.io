@@ -3580,20 +3580,63 @@ body.is-booting #panelDesc {
   transition: opacity 240ms ease;
   transform-origin: center center;
 }
-.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.18) brightness(1.14) saturate(0.82); }
+.site-header.is-webgl-logo-ready .webgl-logo-model {
+  opacity: 1;
+  filter: contrast(1.28) brightness(1.28) saturate(0.72);
+}
+
+.webgl-logo-wrap::before,
+.webgl-logo-wrap::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 155%;
+  height: 135%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  z-index: 4;
+}
+
+.webgl-logo-wrap::before {
+  background:
+    linear-gradient(90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.12) 35%,
+      rgba(255,255,255,0.92) 49%,
+      rgba(255,255,255,0.16) 63%,
+      rgba(255,255,255,0) 100%);
+  filter: blur(10px);
+  transform: translate(-50%, -50%) skewX(-18deg) translateX(var(--pk-glare-x, -42%));
+}
+
+.webgl-logo-wrap::after {
+  background:
+    radial-gradient(circle at var(--pk-glare-hot-x, 50%) 50%,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.38) 9%,
+      rgba(255,255,255,0.12) 21%,
+      rgba(255,255,255,0) 44%);
+  filter: blur(7px);
+}
+
+.site-header.is-webgl-logo-ready .webgl-logo-wrap::before {
+  opacity: var(--pk-glare-opacity, 0.18);
+}
+
+.site-header.is-webgl-logo-ready .webgl-logo-wrap::after {
+  opacity: var(--pk-hotspot-opacity, 0.12);
+}
+
+.site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
 .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
 .site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
 .site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
 .site-header.is-webgl-logo-booting .webgl-logo-fallback { opacity: 1; }
 
-@media (max-width: 900px) {
-  .webgl-logo-model {
-    width: clamp(210px, 62vw, 360px);
-    height: clamp(70px, 18vw, 118px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
   .webgl-logo-model { display: none !important; }
   .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
 }
@@ -3633,7 +3676,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147e" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="20deg" exposure="2.35" shadow-intensity="0" ar-status="not-presenting">
+      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147e" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="19deg" exposure="2.55" shadow-intensity="0" ar-status="not-presenting">
       </model-viewer>
       <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
     </div>
@@ -6890,7 +6933,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 (function () {
-  var DESKTOP_MIN_WIDTH = 0;
+  var DESKTOP_MIN_WIDTH = 769;
   var header = document.getElementById("siteHeader");
   var model = document.getElementById("webglLogoModel");
   window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "not_started";
@@ -6906,6 +6949,38 @@ document.addEventListener('DOMContentLoaded', function () {
       header.classList.remove("is-webgl-logo-ready");
       header.classList.add("is-webgl-logo-fallback");
     }
+  }
+
+  function tuneChromeMaterial() {
+    try {
+      if (!model || !model.model || !model.model.materials) return false;
+      model.model.materials.forEach(function (material) {
+        if (!material || !material.pbrMetallicRoughness) return;
+        var pbr = material.pbrMetallicRoughness;
+        try { pbr.setMetallicFactor(1.0); } catch(e) {}
+        try { pbr.setRoughnessFactor(0.025); } catch(e) {}
+        try { pbr.setBaseColorFactor([0.96, 0.97, 0.98, 1.0]); } catch(e) {}
+      });
+      return true;
+    } catch (err) {
+      console.warn("PaletteKnife chrome material tuning skipped", err);
+      return false;
+    }
+  }
+
+  function runChromeTuneWithRetries() {
+    var attempts = 0;
+    function attempt() {
+      attempts += 1;
+      if (tuneChromeMaterial()) {
+        if (window.PALETTEKNIFE_WEBGL_LOGO_STATUS === "ready" || window.PALETTEKNIFE_WEBGL_LOGO_STATUS.indexOf("ready") === 0) {
+          setStatus("ready_blender_glare_tuned");
+        }
+        return;
+      }
+      if (attempts < 18) window.setTimeout(attempt, 350);
+    }
+    attempt();
   }
 
   function canUse() {
@@ -6940,7 +7015,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.setTimeout(function () {
       if (!loaded && model && model.src) {
         loaded = true;
-        setStatus("ready_forced_after_src_waiting_chrome_tune");
+        setStatus("ready_forced_after_src");
         header.classList.remove("is-webgl-logo-booting");
         header.classList.remove("is-webgl-logo-fallback");
         header.classList.add("is-webgl-logo-ready");
@@ -6954,6 +7029,20 @@ document.addEventListener('DOMContentLoaded', function () {
     header.classList.remove("is-webgl-logo-booting");
     header.classList.remove("is-webgl-logo-fallback");
     header.classList.add("is-webgl-logo-ready");
+    runChromeTuneWithRetries();
+
+    /* one restrained load glint, similar to Blender compositor glare but browser-safe */
+    var wrap = header.querySelector(".webgl-logo-wrap");
+    if (wrap) {
+      wrap.style.setProperty("--pk-glare-opacity", "0.58");
+      wrap.style.setProperty("--pk-hotspot-opacity", "0.36");
+      wrap.style.setProperty("--pk-glare-x", "-18%");
+      wrap.style.setProperty("--pk-glare-hot-x", "42%");
+      window.setTimeout(function () {
+        wrap.style.setProperty("--pk-glare-opacity", "0.22");
+        wrap.style.setProperty("--pk-hotspot-opacity", "0.15");
+      }, 1250);
+    }
   });
 
   model.addEventListener("error", function (event) {
@@ -6980,84 +7069,27 @@ document.addEventListener('DOMContentLoaded', function () {
   var zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   var reactive = {
     scrollEnergy: 0,
-    smoothedVelocity: 0,
-    smoothedPosition: 0,
     lastPosition: 0,
     syntheticPhase: 0,
-    introGlint: 1.35,
-    backgroundLightness: 0.72,
-    backgroundWarmth: 0
+    introGlint: 1.1
   };
-
-  function clamp01(value) {
-    return Math.max(0, Math.min(1, value));
-  }
-
-  function parseRgbColor(value) {
-    var match = String(value || "").match(/rgba?\(([^)]+)\)/i);
-    if (!match) return null;
-    var parts = match[1].split(",").map(function (part) { return parseFloat(part); });
-    if (parts.length < 3 || parts.some(function (v) { return isNaN(v); })) return null;
-    return { r: parts[0], g: parts[1], b: parts[2] };
-  }
-
-  function updateBackgroundResponse() {
-    var rgb = parseRgbColor(window.getComputedStyle(document.body).backgroundColor);
-    if (!rgb) return;
-    var r = rgb.r / 255;
-    var g = rgb.g / 255;
-    var b = rgb.b / 255;
-    var max = Math.max(r, g, b);
-    var min = Math.min(r, g, b);
-    reactive.backgroundLightness = clamp01((max + min) / 2);
-    reactive.backgroundWarmth = clamp01((r - b + 0.35) / 0.7);
-  }
-
-  updateBackgroundResponse();
-  window.setInterval(updateBackgroundResponse, 1200);
-
-  function tuneChromeMaterials() {
-    try {
-      if (!model || !model.model || !model.model.materials) return false;
-      model.model.materials.forEach(function (material) {
-        if (!material || !material.pbrMetallicRoughness) return;
-        var pbr = material.pbrMetallicRoughness;
-
-        /* Sharper chrome material pass: high metallic, low roughness for stronger mirror/bevel read. */
-        try { pbr.setMetallicFactor(1.0); } catch(e) {}
-        try { pbr.setRoughnessFactor(0.055); } catch(e) {}
-
-        /* Keep base material neutral silver so reflections read cleanly. */
-        try { pbr.setBaseColorFactor([0.92, 0.93, 0.94, 1.0]); } catch(e) {}
-      });
-      return true;
-    } catch (error) {
-      console.warn("PaletteKnife chrome material tuning skipped", error);
-      return false;
-    }
-  }
 
   window.addEventListener("paletteknife:zaxis", function (event) {
     if (!event.detail) return;
     var nextPosition = Number(event.detail.position || 0);
-    var rawVelocity = Number(event.detail.velocity || 0) + Number(event.detail.targetVelocity || 0);
-
     zaxis.position = nextPosition;
     zaxis.velocity = Number(event.detail.velocity || 0);
     zaxis.targetVelocity = Number(event.detail.targetVelocity || 0);
 
     var delta = Math.abs(nextPosition - reactive.lastPosition);
     reactive.lastPosition = nextPosition;
-    reactive.smoothedVelocity = reactive.smoothedVelocity * 0.72 + rawVelocity * 0.28;
 
-    /* Scroll sync v2: more faithful to z-axis camera momentum, less random shimmer. */
-    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.36, delta * 0.014));
+    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.48, delta * 0.014));
   }, { passive: true });
 
   window.addEventListener("wheel", function (event) {
-    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.30, Math.abs(event.deltaY) * 0.0021));
-    reactive.syntheticPhase += event.deltaY * 0.00105;
-    reactive.smoothedVelocity = reactive.smoothedVelocity * 0.80 + event.deltaY * 0.018;
+    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.34, Math.abs(event.deltaY) * 0.0022));
+    reactive.syntheticPhase += event.deltaY * 0.0012;
   }, { passive: true });
 
   var touchY = null;
@@ -7070,72 +7102,49 @@ document.addEventListener('DOMContentLoaded', function () {
     var y = event.touches[0].clientY;
     var dy = touchY - y;
     touchY = y;
-    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.28, Math.abs(dy) * 0.007));
-    reactive.syntheticPhase += dy * 0.0032;
-    reactive.smoothedVelocity = reactive.smoothedVelocity * 0.82 + dy * 0.06;
+    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.30, Math.abs(dy) * 0.007));
+    reactive.syntheticPhase += dy * 0.0034;
   }, { passive: true });
-
-  var materialTuneAttempts = 0;
-  function attemptMaterialTune() {
-    if (tuneChromeMaterials()) {
-      setStatus("ready_chrome_tuned");
-      return;
-    }
-    materialTuneAttempts += 1;
-    if (materialTuneAttempts < 18) {
-      window.setTimeout(attemptMaterialTune, 450);
-    }
-  }
-
-  model.addEventListener("load", function () {
-    window.setTimeout(attemptMaterialTune, 160);
-  });
 
   var start = performance.now();
   function animate(now) {
     if (!model || window.innerWidth < DESKTOP_MIN_WIDTH) return;
     var t = (now - start) / 1000;
+    var wrap = header ? header.querySelector(".webgl-logo-wrap") : null;
 
-    reactive.scrollEnergy *= 0.915;
-    reactive.smoothedVelocity *= 0.90;
+    reactive.scrollEnergy *= 0.918;
     reactive.introGlint *= 0.982;
 
-    reactive.smoothedPosition = reactive.smoothedPosition * 0.88 + zaxis.position * 0.12;
-
-    var mobileFactor = window.innerWidth <= 768 ? 0.52 : 1.0;
-    var velocityPulse = Math.min(1.55, Math.abs(reactive.smoothedVelocity) / 13);
-    var energy = Math.min(1.55, Math.max(velocityPulse, reactive.scrollEnergy)) * mobileFactor;
-    var intro = Math.max(0, reactive.introGlint) * mobileFactor;
-
-    var phase = reactive.smoothedPosition * 0.0026 + reactive.syntheticPhase + reactive.smoothedVelocity * 0.0025;
+    var velocityPulse = Math.min(1.55, Math.abs(zaxis.velocity + zaxis.targetVelocity) / 10);
+    var energy = Math.min(1.55, Math.max(velocityPulse, reactive.scrollEnergy));
+    var phase = zaxis.position * 0.0028 + reactive.syntheticPhase;
 
     /*
-      Scroll sync v2:
-      - primary reflection sweep follows z-axis position/momentum
-      - object remains nearly still
-      - lighting reads as chrome movement, not logo spin
+      Blender-match browser approximation:
+      - model-viewer camera orbit creates travelling reflections
+      - CSS screen glare mimics compositor streaks
+      - object position remains unchanged
     */
-    var baseSweep = Math.sin(t * 0.18 + phase);
-    var momentumSweep = Math.tanh(reactive.smoothedVelocity * 0.035) * (8.0 + energy * 5.5);
-    var sweep = baseSweep * (12.5 + energy * 8.5 + intro * 3.5) + momentumSweep;
-    var vertical = 71.5 + Math.sin(t * 0.22 + phase * 0.48) * (4.5 + energy * 3.0);
-    var radius = "auto";
+    var sweep = Math.sin(t * 0.30 + phase) * (15.5 + energy * 10.5);
+    var vertical = 70.5 + Math.sin(t * 0.24 + phase * 0.62) * (5.3 + energy * 3.8);
 
-    model.setAttribute("camera-orbit", sweep.toFixed(3) + "deg " + vertical.toFixed(3) + "deg " + radius);
+    model.setAttribute("camera-orbit", sweep.toFixed(3) + "deg " + vertical.toFixed(3) + "deg auto");
 
-    /*
-      Adaptive background reflection mode:
-      - pale backgrounds reduce washout slightly
-      - darker backgrounds increase highlight punch
-      - warm/cool body colour slightly shifts the reflection feel through exposure.
-    */
-    var bgCompensation = 0.42 - reactive.backgroundLightness * 0.34;
-    var warmthLift = (reactive.backgroundWarmth - 0.5) * 0.08;
-    var introFlash = intro * Math.max(0, Math.sin(t * 5.2)) * 0.95;
-    var chromeBreath = Math.sin(t * 0.52) * 0.055;
+    var introPulse = reactive.introGlint * Math.max(0, Math.sin(t * 4.8)) * 0.95;
+    var exposure = 2.55 + energy * 1.32 + introPulse + Math.sin(t * 0.7) * 0.06;
+    model.setAttribute("exposure", Math.min(4.1, exposure).toFixed(3));
 
-    var exposure = 2.35 + bgCompensation + warmthLift + energy * 1.08 + introFlash + chromeBreath;
-    model.setAttribute("exposure", Math.min(3.75, Math.max(1.85, exposure)).toFixed(3));
+    if (wrap) {
+      var glareTravel = 50 + Math.sin(t * 0.42 + phase) * (42 + energy * 15);
+      var hotTravel = 50 + Math.sin(t * 0.58 + phase * 0.74) * (30 + energy * 12);
+      var glareOpacity = Math.min(0.68, 0.20 + energy * 0.28 + reactive.introGlint * 0.18);
+      var hotOpacity = Math.min(0.46, 0.12 + energy * 0.20 + reactive.introGlint * 0.12);
+
+      wrap.style.setProperty("--pk-glare-x", (glareTravel - 50).toFixed(2) + "%");
+      wrap.style.setProperty("--pk-glare-hot-x", hotTravel.toFixed(2) + "%");
+      wrap.style.setProperty("--pk-glare-opacity", glareOpacity.toFixed(3));
+      wrap.style.setProperty("--pk-hotspot-opacity", hotOpacity.toFixed(3));
+    }
 
     requestAnimationFrame(animate);
   }
