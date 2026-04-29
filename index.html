@@ -3580,13 +3580,20 @@ body.is-booting #panelDesc {
   transition: opacity 240ms ease;
   transform-origin: center center;
 }
-.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.08) brightness(1.06); }
+.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.18) brightness(1.14) saturate(0.82); }
 .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
 .site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
 .site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
 .site-header.is-webgl-logo-booting .webgl-logo-fallback { opacity: 1; }
 
-@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+@media (max-width: 900px) {
+  .webgl-logo-model {
+    width: clamp(210px, 62vw, 360px);
+    height: clamp(70px, 18vw, 118px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
   .webgl-logo-model { display: none !important; }
   .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
 }
@@ -3626,7 +3633,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147e" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="22deg" exposure="2.05" shadow-intensity="0" ar-status="not-presenting">
+      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147e" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="20deg" exposure="2.35" shadow-intensity="0" ar-status="not-presenting">
       </model-viewer>
       <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
     </div>
@@ -6883,7 +6890,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 (function () {
-  var DESKTOP_MIN_WIDTH = 769;
+  var DESKTOP_MIN_WIDTH = 0;
   var header = document.getElementById("siteHeader");
   var model = document.getElementById("webglLogoModel");
   window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "not_started";
@@ -6933,7 +6940,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.setTimeout(function () {
       if (!loaded && model && model.src) {
         loaded = true;
-        setStatus("ready_forced_after_src");
+        setStatus("ready_forced_after_src_waiting_chrome_tune");
         header.classList.remove("is-webgl-logo-booting");
         header.classList.remove("is-webgl-logo-fallback");
         header.classList.add("is-webgl-logo-ready");
@@ -6973,28 +6980,84 @@ document.addEventListener('DOMContentLoaded', function () {
   var zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   var reactive = {
     scrollEnergy: 0,
+    smoothedVelocity: 0,
+    smoothedPosition: 0,
     lastPosition: 0,
-    syntheticPhase: 0
+    syntheticPhase: 0,
+    introGlint: 1.35,
+    backgroundLightness: 0.72,
+    backgroundWarmth: 0
   };
+
+  function clamp01(value) {
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function parseRgbColor(value) {
+    var match = String(value || "").match(/rgba?\(([^)]+)\)/i);
+    if (!match) return null;
+    var parts = match[1].split(",").map(function (part) { return parseFloat(part); });
+    if (parts.length < 3 || parts.some(function (v) { return isNaN(v); })) return null;
+    return { r: parts[0], g: parts[1], b: parts[2] };
+  }
+
+  function updateBackgroundResponse() {
+    var rgb = parseRgbColor(window.getComputedStyle(document.body).backgroundColor);
+    if (!rgb) return;
+    var r = rgb.r / 255;
+    var g = rgb.g / 255;
+    var b = rgb.b / 255;
+    var max = Math.max(r, g, b);
+    var min = Math.min(r, g, b);
+    reactive.backgroundLightness = clamp01((max + min) / 2);
+    reactive.backgroundWarmth = clamp01((r - b + 0.35) / 0.7);
+  }
+
+  updateBackgroundResponse();
+  window.setInterval(updateBackgroundResponse, 1200);
+
+  function tuneChromeMaterials() {
+    try {
+      if (!model || !model.model || !model.model.materials) return false;
+      model.model.materials.forEach(function (material) {
+        if (!material || !material.pbrMetallicRoughness) return;
+        var pbr = material.pbrMetallicRoughness;
+
+        /* Sharper chrome material pass: high metallic, low roughness for stronger mirror/bevel read. */
+        try { pbr.setMetallicFactor(1.0); } catch(e) {}
+        try { pbr.setRoughnessFactor(0.055); } catch(e) {}
+
+        /* Keep base material neutral silver so reflections read cleanly. */
+        try { pbr.setBaseColorFactor([0.92, 0.93, 0.94, 1.0]); } catch(e) {}
+      });
+      return true;
+    } catch (error) {
+      console.warn("PaletteKnife chrome material tuning skipped", error);
+      return false;
+    }
+  }
 
   window.addEventListener("paletteknife:zaxis", function (event) {
     if (!event.detail) return;
     var nextPosition = Number(event.detail.position || 0);
+    var rawVelocity = Number(event.detail.velocity || 0) + Number(event.detail.targetVelocity || 0);
+
     zaxis.position = nextPosition;
     zaxis.velocity = Number(event.detail.velocity || 0);
     zaxis.targetVelocity = Number(event.detail.targetVelocity || 0);
 
     var delta = Math.abs(nextPosition - reactive.lastPosition);
     reactive.lastPosition = nextPosition;
+    reactive.smoothedVelocity = reactive.smoothedVelocity * 0.72 + rawVelocity * 0.28;
 
-    /* visible but controlled scroll-energy pulse for chrome glints */
-    reactive.scrollEnergy = Math.min(1.35, reactive.scrollEnergy + Math.min(0.42, delta * 0.012));
+    /* Scroll sync v2: more faithful to z-axis camera momentum, less random shimmer. */
+    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.36, delta * 0.014));
   }, { passive: true });
 
-  /* Also listen to direct wheel/touch movement so highlight reacts even before custom z-axis events dispatch. */
   window.addEventListener("wheel", function (event) {
-    reactive.scrollEnergy = Math.min(1.35, reactive.scrollEnergy + Math.min(0.28, Math.abs(event.deltaY) * 0.0018));
-    reactive.syntheticPhase += event.deltaY * 0.0009;
+    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.30, Math.abs(event.deltaY) * 0.0021));
+    reactive.syntheticPhase += event.deltaY * 0.00105;
+    reactive.smoothedVelocity = reactive.smoothedVelocity * 0.80 + event.deltaY * 0.018;
   }, { passive: true });
 
   var touchY = null;
@@ -7007,37 +7070,72 @@ document.addEventListener('DOMContentLoaded', function () {
     var y = event.touches[0].clientY;
     var dy = touchY - y;
     touchY = y;
-    reactive.scrollEnergy = Math.min(1.35, reactive.scrollEnergy + Math.min(0.24, Math.abs(dy) * 0.006));
-    reactive.syntheticPhase += dy * 0.003;
+    reactive.scrollEnergy = Math.min(1.55, reactive.scrollEnergy + Math.min(0.28, Math.abs(dy) * 0.007));
+    reactive.syntheticPhase += dy * 0.0032;
+    reactive.smoothedVelocity = reactive.smoothedVelocity * 0.82 + dy * 0.06;
   }, { passive: true });
+
+  var materialTuneAttempts = 0;
+  function attemptMaterialTune() {
+    if (tuneChromeMaterials()) {
+      setStatus("ready_chrome_tuned");
+      return;
+    }
+    materialTuneAttempts += 1;
+    if (materialTuneAttempts < 18) {
+      window.setTimeout(attemptMaterialTune, 450);
+    }
+  }
+
+  model.addEventListener("load", function () {
+    window.setTimeout(attemptMaterialTune, 160);
+  });
 
   var start = performance.now();
   function animate(now) {
     if (!model || window.innerWidth < DESKTOP_MIN_WIDTH) return;
     var t = (now - start) / 1000;
 
-    reactive.scrollEnergy *= 0.92;
+    reactive.scrollEnergy *= 0.915;
+    reactive.smoothedVelocity *= 0.90;
+    reactive.introGlint *= 0.982;
 
-    var velocityPulse = Math.min(1.35, Math.abs(zaxis.velocity + zaxis.targetVelocity) / 11);
-    var energy = Math.min(1.35, Math.max(velocityPulse, reactive.scrollEnergy));
-    var phase = zaxis.position * 0.0022 + reactive.syntheticPhase;
+    reactive.smoothedPosition = reactive.smoothedPosition * 0.88 + zaxis.position * 0.12;
+
+    var mobileFactor = window.innerWidth <= 768 ? 0.52 : 1.0;
+    var velocityPulse = Math.min(1.55, Math.abs(reactive.smoothedVelocity) / 13);
+    var energy = Math.min(1.55, Math.max(velocityPulse, reactive.scrollEnergy)) * mobileFactor;
+    var intro = Math.max(0, reactive.introGlint) * mobileFactor;
+
+    var phase = reactive.smoothedPosition * 0.0026 + reactive.syntheticPhase + reactive.smoothedVelocity * 0.0025;
 
     /*
-      Chrome lighting illusion:
-      - wider camera-orbit sweep makes bevel reflections visibly travel
-      - exposure pulse brightens the highlight during scroll
-      - no header/layout movement
-      - no obvious spinning
+      Scroll sync v2:
+      - primary reflection sweep follows z-axis position/momentum
+      - object remains nearly still
+      - lighting reads as chrome movement, not logo spin
     */
-    var slowBreath = Math.sin(t * 0.42) * 0.08;
-    var sweep = Math.sin(t * 0.34 + phase) * (11.5 + energy * 7.5);
-    var vertical = 72 + Math.sin(t * 0.29 + phase * 0.55) * (4.2 + energy * 2.8);
+    var baseSweep = Math.sin(t * 0.18 + phase);
+    var momentumSweep = Math.tanh(reactive.smoothedVelocity * 0.035) * (8.0 + energy * 5.5);
+    var sweep = baseSweep * (12.5 + energy * 8.5 + intro * 3.5) + momentumSweep;
+    var vertical = 71.5 + Math.sin(t * 0.22 + phase * 0.48) * (4.5 + energy * 3.0);
     var radius = "auto";
 
     model.setAttribute("camera-orbit", sweep.toFixed(3) + "deg " + vertical.toFixed(3) + "deg " + radius);
 
-    var exposure = 2.05 + energy * 1.1 + slowBreath;
-    model.setAttribute("exposure", Math.min(3.35, exposure).toFixed(3));
+    /*
+      Adaptive background reflection mode:
+      - pale backgrounds reduce washout slightly
+      - darker backgrounds increase highlight punch
+      - warm/cool body colour slightly shifts the reflection feel through exposure.
+    */
+    var bgCompensation = 0.42 - reactive.backgroundLightness * 0.34;
+    var warmthLift = (reactive.backgroundWarmth - 0.5) * 0.08;
+    var introFlash = intro * Math.max(0, Math.sin(t * 5.2)) * 0.95;
+    var chromeBreath = Math.sin(t * 0.52) * 0.055;
+
+    var exposure = 2.35 + bgCompensation + warmthLift + energy * 1.08 + introFlash + chromeBreath;
+    model.setAttribute("exposure", Math.min(3.75, Math.max(1.85, exposure)).toFixed(3));
 
     requestAnimationFrame(animate);
   }
