@@ -3581,6 +3581,9 @@ body.is-booting #panelDesc {
 .site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; }
 .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
 .site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
+.site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
+.site-header.is-webgl-logo-booting .webgl-logo-fallback { opacity: 1; }
+
 @media (max-width: 900px), (prefers-reduced-motion: reduce) {
   .webgl-logo-model { display: none !important; }
   .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
@@ -3618,7 +3621,7 @@ body.is-booting #panelDesc {
 </head>
 <body class="is-booting">
 
-<header class="site-header" id="siteHeader">
+<header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
       <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147e" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="24deg" exposure="1.55" shadow-intensity="0" ar-status="not-presenting">
@@ -6890,6 +6893,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function fallback(reason) {
     setStatus("fallback_" + reason);
     if (header) {
+      header.classList.remove("is-webgl-logo-booting");
       header.classList.remove("is-webgl-logo-ready");
       header.classList.add("is-webgl-logo-fallback");
     }
@@ -6924,11 +6928,21 @@ document.addEventListener('DOMContentLoaded', function () {
     var src = model.getAttribute("data-src") || "media/brand/paletteknife_logo.glb?v=147e";
     setStatus("loading_" + src);
     model.setAttribute("src", src);
+    window.setTimeout(function () {
+      if (!loaded && model && model.src) {
+        loaded = true;
+        setStatus("ready_forced_after_src");
+        header.classList.remove("is-webgl-logo-booting");
+        header.classList.remove("is-webgl-logo-fallback");
+        header.classList.add("is-webgl-logo-ready");
+      }
+    }, 1200);
   }
 
   model.addEventListener("load", function () {
     loaded = true;
     setStatus("ready");
+    header.classList.remove("is-webgl-logo-booting");
     header.classList.remove("is-webgl-logo-fallback");
     header.classList.add("is-webgl-logo-ready");
   });
