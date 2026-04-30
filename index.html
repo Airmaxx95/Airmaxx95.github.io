@@ -47,7 +47,7 @@
 
 <title>PaletteKnife — Editions & Objects</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
-<link rel="preload" href="media/brand/studio_small_09.hdr" as="fetch" type="application/octet-stream" crossorigin>
+<link rel="preload" href="media/brand/studio_small_09.jpg" as="image">
 <style>
   :root {
     --perspective: 900px;
@@ -3581,8 +3581,8 @@ body.is-booting #panelDesc {
   transition: opacity 240ms ease;
   transform-origin: center center;
 }
-.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.18) brightness(1.10) saturate(0.86); }
-.site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
+.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.24) brightness(1.14) saturate(0.82); }
+.site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; transition-delay: 180ms; }
 .site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
 .site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
 .site-header.is-webgl-logo-booting .webgl-logo-fallback { opacity: 1; }
@@ -3627,7 +3627,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147m" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="20deg" exposure="2.85" environment-image="media/brand/studio_small_09.hdr" crossorigin="anonymous"  shadow-intensity="0" ar-status="not-presenting">
+      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147n" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="20deg" exposure="2.45" environment-image="media/brand/studio_small_09.jpg" shadow-intensity="0" ar-status="not-presenting">
       </model-viewer>
       <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
     </div>
@@ -6902,36 +6902,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function tuneChromeForHdriEnvironment() {
+  function tuneChromeForJpgEnvironment() {
     try {
       if (!model || !model.model || !model.model.materials) return false;
       model.model.materials.forEach(function (material) {
         if (!material || !material.pbrMetallicRoughness) return;
         var pbr = material.pbrMetallicRoughness;
-
-        /*
-          HDRI environment match:
-          Let the Blender-style studio HDRI do the reflection work.
-          Keep material highly metallic and low-roughness, but avoid fake overlays.
-        */
         try { pbr.setMetallicFactor(1.0); } catch(e) {}
         try { pbr.setRoughnessFactor(0.035); } catch(e) {}
         try { pbr.setBaseColorFactor([0.96, 0.965, 0.97, 1.0]); } catch(e) {}
       });
       return true;
     } catch (error) {
-      console.warn("PaletteKnife HDRI chrome tuning skipped", error);
+      console.warn("PaletteKnife JPG environment chrome tuning skipped", error);
       return false;
     }
   }
 
-  function tuneChromeForHdriSoon() {
+  function tuneChromeForJpgSoon() {
     var attempts = 0;
     function attempt() {
       attempts += 1;
-      if (tuneChromeForHdriEnvironment()) {
+      if (tuneChromeForJpgEnvironment()) {
         if (String(window.PALETTEKNIFE_WEBGL_LOGO_STATUS || "").indexOf("ready") === 0) {
-          setStatus("ready_hdri_environment");
+          setStatus("ready_jpg_environment_reflections");
         }
         return;
       }
@@ -6986,7 +6980,7 @@ document.addEventListener('DOMContentLoaded', function () {
     header.classList.remove("is-webgl-logo-booting");
     header.classList.remove("is-webgl-logo-fallback");
     header.classList.add("is-webgl-logo-ready");
-    tuneChromeForHdriSoon();
+    tuneChromeForJpgSoon();
   });
 
   model.addEventListener("error", function (event) {
@@ -7068,18 +7062,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var phase = zaxis.position * 0.00285 + reactive.syntheticPhase + reactive.velocityMemory * 0.0015;
     var momentum = Math.tanh(reactive.velocityMemory * 0.034);
 
-    /*
-      HDRI reflection mapping:
-      The object stays in the header. Scroll changes camera orbit/exposure so the
-      studio HDRI bands travel across the bevels like the Blender render.
-    */
     var sweep = Math.sin(t * 0.26 + phase) * (21.0 + energy * 11.0) + momentum * 9.0;
     var vertical = 69.5 + Math.sin(t * 0.22 + phase * 0.52) * (6.5 + energy * 3.5);
 
     model.setAttribute("camera-orbit", sweep.toFixed(3) + "deg " + vertical.toFixed(3) + "deg auto");
 
-    var exposure = 2.85 + energy * 0.62 + Math.sin(t * 0.42) * 0.05;
-    model.setAttribute("exposure", Math.min(3.65, Math.max(2.35, exposure)).toFixed(3));
+    var exposure = 2.45 + energy * 0.72 + Math.sin(t * 0.42) * 0.05;
+    model.setAttribute("exposure", Math.min(3.45, Math.max(2.05, exposure)).toFixed(3));
 
     requestAnimationFrame(animate);
   }
@@ -7087,7 +7076,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   window.setTimeout(function () {
     if (!loaded && started) {
-      console.warn("PaletteKnife WebGL logo slow/not visible. Status:", window.PALETTEKNIFE_WEBGL_LOGO_STATUS, "Width:", window.innerWidth);
+      console.warn("PaletteKnife WebGL logo slow/not visible; SVG fallback intentionally remains visible. Status:", window.PALETTEKNIFE_WEBGL_LOGO_STATUS, "Width:", window.innerWidth);
+      fallback("model_timeout_keep_svg");
     }
   }, 9000);
 })();
