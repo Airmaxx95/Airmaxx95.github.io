@@ -3580,66 +3580,7 @@ body.is-booting #panelDesc {
   transition: opacity 240ms ease;
   transform-origin: center center;
 }
-.site-header.is-webgl-logo-ready .webgl-logo-model {
-  opacity: 1;
-  filter: contrast(1.16) brightness(1.13) saturate(0.84);
-}
-
-.webgl-logo-wrap {
-  --pk-glare-x: -48%;
-  --pk-glare-opacity: 0.00;
-  --pk-glare-hotspot-x: 45%;
-  --pk-glare-hotspot-opacity: 0.00;
-}
-
-.webgl-logo-glare {
-  position: absolute;
-  inset: -42%;
-  z-index: 4;
-  pointer-events: none;
-  opacity: 0;
-  mix-blend-mode: screen;
-  transform: translateZ(0);
-}
-
-.site-header.is-webgl-logo-ready .webgl-logo-glare {
-  opacity: 1;
-}
-
-.webgl-logo-glare::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 150%;
-  height: 90%;
-  transform: translate(-50%, -50%) translateX(var(--pk-glare-x)) skewX(-18deg);
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.05) 36%,
-    rgba(255,255,255,0.62) 49%,
-    rgba(255,255,255,0.09) 63%,
-    rgba(255,255,255,0) 100%);
-  filter: blur(9px);
-  opacity: var(--pk-glare-opacity);
-}
-
-.webgl-logo-glare::after {
-  content: "";
-  position: absolute;
-  left: var(--pk-glare-hotspot-x);
-  top: 50%;
-  width: 38%;
-  height: 92%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle,
-    rgba(255,255,255,0.78) 0%,
-    rgba(255,255,255,0.28) 12%,
-    rgba(255,255,255,0.07) 34%,
-    rgba(255,255,255,0) 62%);
-  filter: blur(7px);
-  opacity: var(--pk-glare-hotspot-opacity);
-}
+.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.08) brightness(1.06); }
 .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
 .site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
 .site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
@@ -3685,9 +3626,8 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147k" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="22deg" exposure="2.18" shadow-intensity="0" ar-status="not-presenting">
+      <model-viewer id="webglLogoModel" class="webgl-logo-model" data-src="media/brand/paletteknife_logo.glb?v=147e" alt="PaletteKnife chrome 3D logo" loading="eager" reveal="auto" interaction-prompt="none" disable-tap camera-orbit="0deg 75deg auto" field-of-view="22deg" exposure="2.05" shadow-intensity="0" ar-status="not-presenting">
       </model-viewer>
-      <span class="webgl-logo-glare" aria-hidden="true"></span>
       <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
     </div>
   </div>
@@ -6961,38 +6901,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function tuneChromeMaterial() {
-    try {
-      if (!model || !model.model || !model.model.materials) return false;
-      model.model.materials.forEach(function (material) {
-        if (!material || !material.pbrMetallicRoughness) return;
-        var pbr = material.pbrMetallicRoughness;
-        try { pbr.setMetallicFactor(1.0); } catch(e) {}
-        try { pbr.setRoughnessFactor(0.045); } catch(e) {}
-        try { pbr.setBaseColorFactor([0.94, 0.95, 0.96, 1.0]); } catch(e) {}
-      });
-      return true;
-    } catch (error) {
-      console.warn("PaletteKnife chrome material bridge skipped", error);
-      return false;
-    }
-  }
-
-  function tuneChromeMaterialSoon() {
-    var attempts = 0;
-    function attempt() {
-      attempts += 1;
-      if (tuneChromeMaterial()) {
-        if (String(window.PALETTEKNIFE_WEBGL_LOGO_STATUS || "").indexOf("ready") === 0) {
-          setStatus("ready_zaxis_lighting_bridge");
-        }
-        return;
-      }
-      if (attempts < 16) window.setTimeout(attempt, 380);
-    }
-    attempt();
-  }
-
   function canUse() {
     if (!header || !model) return { ok: false, reason: "missing_dom" };
     if (window.innerWidth < DESKTOP_MIN_WIDTH) return { ok: false, reason: "viewport_" + window.innerWidth };
@@ -7039,17 +6947,6 @@ document.addEventListener('DOMContentLoaded', function () {
     header.classList.remove("is-webgl-logo-booting");
     header.classList.remove("is-webgl-logo-fallback");
     header.classList.add("is-webgl-logo-ready");
-    tuneChromeMaterialSoon();
-
-    var wrap = header.querySelector(".webgl-logo-wrap");
-    if (wrap) {
-      wrap.style.setProperty("--pk-glare-opacity", "0.38");
-      wrap.style.setProperty("--pk-glare-hotspot-opacity", "0.24");
-      window.setTimeout(function () {
-        wrap.style.setProperty("--pk-glare-opacity", "0.12");
-        wrap.style.setProperty("--pk-glare-hotspot-opacity", "0.08");
-      }, 900);
-    }
   });
 
   model.addEventListener("error", function (event) {
@@ -7073,84 +6970,75 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, { passive: true });
 
-  var zaxis = { position: 0, velocity: 0, targetVelocity: 0, centeredIndex: 0 };
-  var lighting = {
-    energy: 0,
-    velocity: 0,
-    position: 0,
+  var zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
+  var reactive = {
+    scrollEnergy: 0,
     lastPosition: 0,
-    syntheticPhase: 0,
-    intro: 1.0
+    syntheticPhase: 0
   };
-
-  function pushLighting(deltaPosition, velocityLike) {
-    var d = Math.abs(deltaPosition || 0);
-    lighting.energy = Math.min(1.25, lighting.energy + Math.min(0.30, d * 0.012 + Math.abs(velocityLike || 0) * 0.002));
-  }
 
   window.addEventListener("paletteknife:zaxis", function (event) {
     if (!event.detail) return;
     var nextPosition = Number(event.detail.position || 0);
-    var rawVelocity = Number(event.detail.velocity || 0) + Number(event.detail.targetVelocity || 0);
     zaxis.position = nextPosition;
     zaxis.velocity = Number(event.detail.velocity || 0);
     zaxis.targetVelocity = Number(event.detail.targetVelocity || 0);
-    zaxis.centeredIndex = Number(event.detail.centeredIndex || zaxis.centeredIndex || 0);
-    var delta = nextPosition - lighting.lastPosition;
-    lighting.lastPosition = nextPosition;
-    lighting.position = lighting.position * 0.82 + nextPosition * 0.18;
-    lighting.velocity = lighting.velocity * 0.78 + rawVelocity * 0.22;
-    pushLighting(delta, rawVelocity);
+
+    var delta = Math.abs(nextPosition - reactive.lastPosition);
+    reactive.lastPosition = nextPosition;
+
+    /* visible but controlled scroll-energy pulse for chrome glints */
+    reactive.scrollEnergy = Math.min(1.35, reactive.scrollEnergy + Math.min(0.42, delta * 0.012));
   }, { passive: true });
 
+  /* Also listen to direct wheel/touch movement so highlight reacts even before custom z-axis events dispatch. */
   window.addEventListener("wheel", function (event) {
-    lighting.syntheticPhase += event.deltaY * 0.001;
-    lighting.velocity = lighting.velocity * 0.82 + event.deltaY * 0.018;
-    pushLighting(event.deltaY * 0.12, event.deltaY);
+    reactive.scrollEnergy = Math.min(1.35, reactive.scrollEnergy + Math.min(0.28, Math.abs(event.deltaY) * 0.0018));
+    reactive.syntheticPhase += event.deltaY * 0.0009;
   }, { passive: true });
 
   var touchY = null;
   window.addEventListener("touchstart", function (event) {
     if (event.touches && event.touches.length) touchY = event.touches[0].clientY;
   }, { passive: true });
+
   window.addEventListener("touchmove", function (event) {
     if (!event.touches || !event.touches.length || touchY === null) return;
     var y = event.touches[0].clientY;
     var dy = touchY - y;
     touchY = y;
-    lighting.syntheticPhase += dy * 0.003;
-    lighting.velocity = lighting.velocity * 0.84 + dy * 0.055;
-    pushLighting(dy, dy * 4);
+    reactive.scrollEnergy = Math.min(1.35, reactive.scrollEnergy + Math.min(0.24, Math.abs(dy) * 0.006));
+    reactive.syntheticPhase += dy * 0.003;
   }, { passive: true });
 
   var start = performance.now();
   function animate(now) {
     if (!model || window.innerWidth < DESKTOP_MIN_WIDTH) return;
     var t = (now - start) / 1000;
-    var wrap = header ? header.querySelector(".webgl-logo-wrap") : null;
-    lighting.energy *= 0.925;
-    lighting.velocity *= 0.90;
-    lighting.intro *= 0.984;
-    var phase = lighting.position * 0.0022 + lighting.syntheticPhase + lighting.velocity * 0.002;
-    var momentum = Math.tanh(lighting.velocity * 0.028);
-    var energy = Math.min(1.25, Math.max(lighting.energy, Math.abs(momentum) * 0.8));
-    var intro = Math.max(0, lighting.intro);
-    var orbitY = Math.sin(t * 0.22 + phase) * (13.0 + energy * 8.0) + momentum * 7.0;
-    var orbitX = 71.5 + Math.sin(t * 0.20 + phase * 0.5) * (4.0 + energy * 2.6);
-    model.setAttribute("camera-orbit", orbitY.toFixed(3) + "deg " + orbitX.toFixed(3) + "deg auto");
-    var introGlint = intro * Math.max(0, Math.sin(t * 4.6)) * 0.48;
-    var exposure = 2.18 + energy * 0.82 + introGlint + Math.sin(t * 0.55) * 0.045;
-    model.setAttribute("exposure", Math.min(3.35, Math.max(1.9, exposure)).toFixed(3));
-    if (wrap) {
-      var travel = 50 + Math.sin(t * 0.34 + phase) * (38 + energy * 12) + momentum * 16;
-      var hotspot = 50 + Math.sin(t * 0.48 + phase * 0.72) * (26 + energy * 9) + momentum * 10;
-      var glareOpacity = Math.min(0.42, 0.08 + energy * 0.20 + intro * 0.14);
-      var hotspotOpacity = Math.min(0.30, 0.05 + energy * 0.14 + intro * 0.10);
-      wrap.style.setProperty("--pk-glare-x", (travel - 50).toFixed(2) + "%");
-      wrap.style.setProperty("--pk-glare-hotspot-x", hotspot.toFixed(2) + "%");
-      wrap.style.setProperty("--pk-glare-opacity", glareOpacity.toFixed(3));
-      wrap.style.setProperty("--pk-glare-hotspot-opacity", hotspotOpacity.toFixed(3));
-    }
+
+    reactive.scrollEnergy *= 0.92;
+
+    var velocityPulse = Math.min(1.35, Math.abs(zaxis.velocity + zaxis.targetVelocity) / 11);
+    var energy = Math.min(1.35, Math.max(velocityPulse, reactive.scrollEnergy));
+    var phase = zaxis.position * 0.0022 + reactive.syntheticPhase;
+
+    /*
+      Chrome lighting illusion:
+      - wider camera-orbit sweep makes bevel reflections visibly travel
+      - exposure pulse brightens the highlight during scroll
+      - no header/layout movement
+      - no obvious spinning
+    */
+    var slowBreath = Math.sin(t * 0.42) * 0.08;
+    var sweep = Math.sin(t * 0.34 + phase) * (11.5 + energy * 7.5);
+    var vertical = 72 + Math.sin(t * 0.29 + phase * 0.55) * (4.2 + energy * 2.8);
+    var radius = "auto";
+
+    model.setAttribute("camera-orbit", sweep.toFixed(3) + "deg " + vertical.toFixed(3) + "deg " + radius);
+
+    var exposure = 2.05 + energy * 1.1 + slowBreath;
+    model.setAttribute("exposure", Math.min(3.35, exposure).toFixed(3));
+
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
