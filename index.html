@@ -3632,7 +3632,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=147o" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g-horizontal-lightbar-orbit" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -6931,25 +6931,22 @@ document.addEventListener('DOMContentLoaded', function () {
   const envSrc = holder.getAttribute("data-env-src") || "media/brand/studio_small_09.jpg";
 
   let THREE, GLTFLoader, RGBELoader, DRACOLoader;
-  let renderer, scene, camera, logoGroup, pmremGenerator, reflectionRig;
-  const chromeMaterials = [];
+  let renderer, scene, camera, logoGroup, pmremGenerator;
+  let liveEnvScene, liveEnvRig, liveEnvCubeCamera, liveEnvTarget;
+  const proofChromeMaterials = [];
+  const proofEnvironment = { phase: 0, lastNow: 0 };
+
+  const liveEnvironmentMotion = {
+    phase: 0,
+    velocity: 0,
+    lastNow: 0,
+    clockPhase: 0
+  };
   let loaded = false;
   let firstFrameRendered = false;
 
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
-
-const headerMotion = {
-  xPhase: 0,
-  xVelocity: 0,
-  lastNow: 0
-};
-
-const envMapMotion = {
-  xPhase: 0,
-  xVelocity: 0,
-  lastNow: 0
-};
 
   function updateHolderSize() {
     if (!holder || !renderer || !camera) return;
@@ -6979,83 +6976,136 @@ const envMapMotion = {
   }
 
   function tuneMaterials(object) {
+    proofChromeMaterials.length = 0;
+
     object.traverse((child) => {
-      if (!child.isMesh || !child.material) return;
+      if (!child.isMesh || !child.geometry) return;
+
       const materials = Array.isArray(child.material) ? child.material : [child.material];
+
       materials.forEach((mat) => {
         if ("metalness" in mat) mat.metalness = 1.0;
-        if ("roughness" in mat) mat.roughness = 0.024;
-        if ("color" in mat) mat.color = new THREE.Color(0xf5f7f9);
-        mat.envMapIntensity = 4.2;
+        if ("roughness" in mat) mat.roughness = 0.018;
+        if ("color" in mat) mat.color = new THREE.Color(0xf6f7f8);
+        mat.envMapIntensity = 6.0;
         mat.needsUpdate = true;
-        if (!chromeMaterials.includes(mat)) chromeMaterials.push(mat);
+        proofChromeMaterials.push(mat);
       });
-      if (child.geometry) child.geometry.computeVertexNormals();
+
+      try { child.geometry.computeVertexNormals(); } catch(e) {}
     });
   }
+
 
   function makeFallbackEnvironment() {
-    const envScene = new THREE.Scene();
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(5, 32, 16),
-      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x1c1c1c })
-    );
-    envScene.add(sphere);
+    /*
+      v149g horizontal lightbar orbit:
+      Hidden reflection world only.
+      Horizontal black/white bars are arranged around the logo in a cylindrical/ring field.
+      The full ring rotates around the GLB, producing cleaner chrome sweeps.
+    */
+    liveEnvScene = new THREE.Scene();
 
-    [
-      { y: 1.5, z: -3.5, color: 0xffffff },
-      { y: 0.25, z: -3.7, color: 0xdde6ff },
-      { y: -1.15, z: -3.8, color: 0x050505 },
-      { y: 0.0, z: 3.4, color: 0xffffff }
-    ].forEach((s) => {
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(5, 64, 32),
+      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x050505 })
+    );
+    liveEnvScene.add(sphere);
+
+    liveEnvRig = new THREE.Group();
+    liveEnvScene.add(liveEnvRig);
+
+    function seededRandom(seed) {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    const ringCount = 36;
+    const radius = 3.75;
+
+    for (let i = 0; i < ringCount; i++) {
+      const r1 = seededRandom(i * 13.17 + 2.1);
+      const r2 = seededRandom(i * 29.91 + 5.4);
+      const r3 = seededRandom(i * 47.33 + 9.8);
+      const r4 = seededRandom(i * 61.71 + 12.6);
+
+      const angle = (i / ringCount) * Math.PI * 2;
+      const width = 2.0 + r1 * 7.8;
+      const height = 0.055 + r2 * 0.24;
+      const color = i % 3 === 0 ? 0x000000 : 0xffffff;
+
       const strip = new THREE.Mesh(
-        new THREE.PlaneGeometry(8, 0.38),
-        new THREE.MeshBasicMaterial({ color: s.color })
+        new THREE.PlaneGeometry(width, height),
+        new THREE.MeshBasicMaterial({
+          color: color,
+          side: THREE.DoubleSide
+        })
       );
-      strip.position.set(0, s.y, s.z);
-      if (s.z > 0) strip.rotation.y = Math.PI;
-      envScene.add(strip);
+
+      // Horizontal bar, placed around a circular environment ring.
+      strip.position.set(
+        Math.sin(angle) * radius,
+        (r3 - 0.5) * 3.6,
+        Math.cos(angle) * radius
+      );
+
+      // Face toward the centre, but keep bar horizontal.
+      strip.lookAt(0, strip.position.y, 0);
+      strip.rotation.z = 0;
+
+      // Slight varied scale but no angled chaos.
+      strip.scale.x = 0.75 + r4 * 0.75;
+
+      liveEnvRig.add(strip);
+    }
+
+    // Strong clean anchor bands for readable chrome contours.
+    const anchorRows = [
+      { y: 1.45, color: 0xffffff, h: 0.16, w: 10.5 },
+      { y: 0.55, color: 0xffffff, h: 0.08, w: 8.8 },
+      { y: -0.08, color: 0x000000, h: 0.36, w: 10.8 },
+      { y: -0.92, color: 0xffffff, h: 0.12, w: 9.6 },
+      { y: -1.55, color: 0x000000, h: 0.22, w: 9.8 }
+    ];
+
+    anchorRows.forEach((row, rowIndex) => {
+      const segments = 8;
+      for (let j = 0; j < segments; j++) {
+        const angle = (j / segments) * Math.PI * 2;
+        const strip = new THREE.Mesh(
+          new THREE.PlaneGeometry(row.w, row.h),
+          new THREE.MeshBasicMaterial({ color: row.color, side: THREE.DoubleSide })
+        );
+
+        strip.position.set(
+          Math.sin(angle) * (radius + 0.15 + rowIndex * 0.03),
+          row.y,
+          Math.cos(angle) * (radius + 0.15 + rowIndex * 0.03)
+        );
+
+        strip.lookAt(0, row.y, 0);
+        strip.rotation.z = 0;
+        liveEnvRig.add(strip);
+      }
     });
 
-    const rt = pmremGenerator.fromScene(envScene, 0.04);
-    scene.environment = rt.texture;
-  }
+    liveEnvTarget = new THREE.WebGLCubeRenderTarget(512, {
+      type: THREE.UnsignedByteType,
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter
+    });
 
+    liveEnvCubeCamera = new THREE.CubeCamera(0.1, 10, liveEnvTarget);
+    liveEnvCubeCamera.position.set(0, 0, 0);
+    liveEnvScene.add(liveEnvCubeCamera);
 
-  function createVisibleReflectionRig() {
-    /*
-      v147u invisible lighting driver:
-      No visible planes. The GLB and camera remain locked.
-      Moving RectAreaLights create specular movement on the chrome without drawing bars.
-    */
-    const rig = new THREE.Group();
-    rig.name = "PaletteKnifeInvisibleLightingDriver";
+    scene.environment = liveEnvTarget.texture;
 
-    const keyStrip = new THREE.RectAreaLight(0xffffff, 8.2, 5.8, 0.16);
-    keyStrip.position.set(-0.35, 1.15, 2.6);
-    keyStrip.lookAt(0, 0, 0);
-    rig.add(keyStrip);
-
-    const lowerStrip = new THREE.RectAreaLight(0xeef3ff, 4.6, 5.2, 0.14);
-    lowerStrip.position.set(0.35, -0.85, 2.45);
-    lowerStrip.lookAt(0, 0, 0);
-    rig.add(lowerStrip);
-
-    const sideGlint = new THREE.RectAreaLight(0xffffff, 5.8, 0.18, 2.8);
-    sideGlint.position.set(-2.15, 0.15, 2.2);
-    sideGlint.lookAt(0, 0, 0);
-    rig.add(sideGlint);
-
-    const darkCutter = new THREE.DirectionalLight(0x050505, 1.35);
-    darkCutter.position.set(2.6, -1.4, 2.0);
-    rig.add(darkCutter);
-
-    const rimGlint = new THREE.DirectionalLight(0xffffff, 2.8);
-    rimGlint.position.set(-3.0, 1.7, 2.5);
-    rig.add(rimGlint);
-
-    scene.add(rig);
-    return rig;
+    window.PALETTEKNIFE_CHROME_DEBUG = {
+      mode: "v149g_horizontal_lightbar_orbit_loop",
+      lightbarCount: liveEnvRig.children.length,
+      status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
+    };
   }
 
 
@@ -7084,7 +7134,7 @@ const envMapMotion = {
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.5;
+      renderer.toneMappingExposure = 1.7;
 
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(24, 1, 0.01, 100);
@@ -7102,27 +7152,12 @@ const envMapMotion = {
       rim.position.set(-3.1, 1.3, 2.2);
       scene.add(rim);
 
-      reflectionRig = createVisibleReflectionRig();
-
-      setStatus("loading_environment");
-      try {
-        let envTexture;
-        if (/\.hdr(\?|$)/i.test(envSrc)) {
-          envTexture = await new RGBELoader().loadAsync(envSrc);
-        } else {
-          envTexture = await new THREE.TextureLoader().loadAsync(envSrc);
-          envTexture.colorSpace = THREE.SRGBColorSpace;
-        }
-        envTexture.mapping = THREE.EquirectangularReflectionMapping;
-        const envMap = pmremGenerator.fromEquirectangular(envTexture).texture;
-        scene.environment = envMap;
-        envTexture.dispose();
-        setStatus("environment_loaded");
-      } catch (envError) {
-        console.warn("Environment image failed; using generated chrome environment.", envError);
-        makeFallbackEnvironment();
-        setStatus("environment_fallback_generated");
+      setStatus("loading_live_cube_environment");
+      makeFallbackEnvironment();
+      if (liveEnvCubeCamera && liveEnvScene) {
+        liveEnvCubeCamera.update(renderer, liveEnvScene);
       }
+      setStatus("live_cube_environment_loaded");
 
       setStatus("loading_glb_draco");
       const dracoLoader = new DRACOLoader();
@@ -7196,71 +7231,60 @@ const envMapMotion = {
     const phase = zaxis.position * 0.00285 + reactive.syntheticPhase + reactive.velocityMemory * 0.0015;
     const momentum = Math.tanh(reactive.velocityMemory * 0.034);
 
-    logoGroup.rotation.y = THREE.MathUtils.degToRad(Math.sin(t * 0.22 + phase) * (2.8 + energy * 1.2));
-    
-/* v147u invisible lighting-driver scrub
-      The GLB geometry stays still.
-      The camera stays locked.
-      Only invisible-to-camera lighting drivers move, creating chrome movement.
+                            /*
+      v149g horizontal lightbar orbit:
+      - GLB geometry stays still
+      - camera stays still
+      - horizontal black/white bars orbit around the logo
+      - z-axis scroll speeds up or reverses the orbit
+      - no per-bar chaos, no angled clutter
     */
-    const dt = envMapMotion.lastNow
-      ? Math.min(0.05, Math.max(0.001, (now - envMapMotion.lastNow) / 1000))
+    const dt = liveEnvironmentMotion.lastNow
+      ? Math.min(0.05, Math.max(0.001, (now - liveEnvironmentMotion.lastNow) / 1000))
       : 0.016;
+    liveEnvironmentMotion.lastNow = now;
 
-    envMapMotion.lastNow = now;
+    const scrollDrive = zaxis.velocity + zaxis.targetVelocity + reactive.velocityMemory;
 
-    const scrollDrive =
-      zaxis.velocity +
-      zaxis.targetVelocity +
-      reactive.velocityMemory;
-
-    const idleSpeed = 0.070;
-    const scrubSpeed = THREE.MathUtils.clamp(scrollDrive * 0.024, -3.0, 3.0);
+    const idleSpeed = 0.105;
+    const scrubSpeed = THREE.MathUtils.clamp(scrollDrive * 0.030, -3.0, 3.0);
     const targetVelocity = idleSpeed + scrubSpeed;
+    const smoothing = Math.abs(scrollDrive) > 0.08 ? 0.24 : 0.04;
 
-    const smoothing =
-      Math.abs(scrollDrive) > 0.08 ? 0.26 : 0.038;
+    liveEnvironmentMotion.velocity += (targetVelocity - liveEnvironmentMotion.velocity) * smoothing;
+    liveEnvironmentMotion.phase += liveEnvironmentMotion.velocity * dt;
 
-    envMapMotion.xVelocity +=
-      (targetVelocity - envMapMotion.xVelocity) * smoothing;
+    const p = liveEnvironmentMotion.phase;
 
-    envMapMotion.xPhase += envMapMotion.xVelocity * dt;
-
-    // Lock the actual GLB shape.
     logoGroup.rotation.x = 0;
     logoGroup.rotation.y = 0;
     logoGroup.rotation.z = 0;
 
-    // Lock the camera.
     camera.position.x = 0;
     camera.position.y = 0;
     camera.lookAt(0, 0, 0);
 
-    // Move only the invisible lighting rig.
-    if (reflectionRig) {
-      reflectionRig.rotation.x = envMapMotion.xPhase;
-      reflectionRig.rotation.y = Math.sin(envMapMotion.xPhase * 0.5) * 0.24;
-      reflectionRig.rotation.z = Math.sin(envMapMotion.xPhase * 0.31) * 0.08;
+    if (liveEnvRig && liveEnvCubeCamera && liveEnvScene && liveEnvTarget) {
+      // Rotate around the GLB. Horizontal rows remain coherent.
+      liveEnvRig.rotation.y = p;
+      liveEnvRig.rotation.x = Math.sin(p * 0.18) * 0.08;
+      liveEnvRig.rotation.z = 0;
 
-      reflectionRig.children.forEach(function (child, index) {
-        if (child.isRectAreaLight || child.isDirectionalLight) {
-          const pulse = 1 + Math.sin(envMapMotion.xPhase * (0.85 + index * 0.13)) * 0.22;
-          if (index === 0) child.intensity = 8.2 * pulse;
-          if (index === 1) child.intensity = 4.6 * pulse;
-          if (index === 2) child.intensity = 5.8 * pulse;
-          if (index === 3) child.intensity = 1.35 * pulse;
-          if (index === 4) child.intensity = 2.8 * pulse;
-          if (typeof child.lookAt === "function") child.lookAt(0, 0, 0);
-        }
+      liveEnvCubeCamera.update(renderer, liveEnvScene);
+      scene.environment = liveEnvTarget.texture;
+    }
+
+    if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
+      proofChromeMaterials.forEach(function (mat) {
+        mat.envMap = liveEnvTarget.texture;
+        mat.envMapIntensity = 7.4 + energy * 0.7;
+        if ("roughness" in mat) mat.roughness = 0.011;
+        if ("metalness" in mat) mat.metalness = 1.0;
+        mat.needsUpdate = true;
       });
     }
 
-    // Keep JPG/environment rotation slowly in sympathy, where supported.
-    if (scene && "environmentRotation" in scene) {
-      scene.environmentRotation.set(envMapMotion.xPhase * 0.45, Math.PI, 0);
-    }
-
-    renderer.toneMappingExposure = Math.min(2.38, Math.max(1.28, 1.55 + energy * 0.30 + Math.sin(t * 0.30) * 0.02));
+    renderer.toneMappingExposure = 1.88;
     renderer.render(scene, camera);
 
     if (loaded && !firstFrameRendered) {
