@@ -3632,7 +3632,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g5-balanced-tonal-orbit-bands" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g6-micro-contrast-polish" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7046,16 +7046,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const key = addWall("balanced_key_wall", 214, 3.95, 1.00, 0.55);
-    key("hot_white_key", 1.36, 20.5, 0.16, 0xffffff, 1.00, -0.8);
+    key("hot_white_key", 1.36, 20.5, 0.145, 0xffffff, 1.00, -0.8);
     key("thin_cool_white", 0.92, 17.5, 0.06, 0xdfe9ff, 0.78, 0.75);
-    key("thin_black_cut", 0.30, 20.0, 0.105, 0x000000, 0.78, 0.15);
+    key("thin_black_cut", 0.30, 20.0, 0.085, 0x000000, 0.72, 0.15);
     key("silver_body", -0.10, 20.5, 0.24, 0xaeb3bf, 0.62, -0.25);
     key("mid_silver_step", -0.56, 18.0, 0.16, 0x777b86, 0.52, -0.5);
-    key("lower_white_edge", -1.04, 16.5, 0.08, 0xffffff, 0.72, 1.05);
+    key("lower_white_edge", -1.04, 16.5, 0.065, 0xffffff, 0.78, 1.05);
 
     const contrast = addWall("controlled_contrast_wall", 318, 3.75, 0.82, -0.35);
-    contrast("cool_white_rim", 1.02, 17.0, 0.12, 0xf0f4ff, 0.74, 0.4);
-    contrast("charcoal_thin_cut", 0.42, 19.0, 0.135, 0x111216, 0.60, -0.4);
+    contrast("cool_white_rim", 1.02, 17.0, 0.10, 0xf0f4ff, 0.80, 0.4);
+    contrast("charcoal_thin_cut", 0.42, 19.0, 0.105, 0x111216, 0.56, -0.4);
     contrast("cool_grey_band", -0.10, 19.5, 0.22, 0x7f8796, 0.58, -1.0);
     contrast("pale_silver_return", -0.72, 17.0, 0.12, 0xc9ced8, 0.52, 0.8);
     contrast("low_dark_line", -1.28, 18.0, 0.10, 0x050505, 0.44, 0.3);
@@ -7116,7 +7116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g5_balanced_tonal_orbit_bands_reduced_black_coverage",
+      mode: "v149g6_micro_contrast_polish_bevel_readability",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7261,9 +7261,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const scrollDrive = zaxis.velocity + zaxis.targetVelocity + reactive.velocityMemory;
 
     const idleSpeed = 0.064;
-    const scrubSpeed = THREE.MathUtils.clamp(scrollDrive * 0.040, -3.65, 3.65);
+    const scrubSpeed = THREE.MathUtils.clamp(scrollDrive * 0.036, -3.15, 3.15);
     const targetVelocity = idleSpeed + scrubSpeed;
-    const smoothing = Math.abs(scrollDrive) > 0.08 ? 0.30 : 0.035;
+    const smoothing = Math.abs(scrollDrive) > 0.08 ? 0.24 : 0.032;
 
     liveEnvironmentMotion.velocity += (targetVelocity - liveEnvironmentMotion.velocity) * smoothing;
     liveEnvironmentMotion.phase += liveEnvironmentMotion.velocity * dt;
@@ -7290,14 +7290,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
       proofChromeMaterials.forEach(function (mat) {
         mat.envMap = liveEnvTarget.texture;
-        mat.envMapIntensity = 7.70 + energy * 0.70;
-        if ("roughness" in mat) mat.roughness = 0.011;
+        mat.envMapIntensity = 7.95 + energy * 0.62;
+        if ("roughness" in mat) mat.roughness = 0.0095;
         if ("metalness" in mat) mat.metalness = 1.0;
         mat.needsUpdate = true;
       });
     }
 
-    renderer.toneMappingExposure = 1.86;
+    renderer.toneMappingExposure = 1.89;
     renderer.render(scene, camera);
 
     if (loaded && !firstFrameRendered) {
