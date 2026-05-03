@@ -3632,7 +3632,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g4-contrast-tonal-orbit-bands" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g5-balanced-tonal-orbit-bands" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -6999,21 +6999,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function makeFallbackEnvironment() {
     /*
-      v149g4 contrast tonal orbit bands:
+      v149g5 balanced tonal orbit bands:
       Hidden CubeCamera reflection world only.
       Static GLB + static camera preserved.
 
-      Goal:
-      - not too light / washed out
-      - stronger light-dark separation
-      - fewer clearer horizontal bands
-      - Y-axis orbit must visibly change the chrome during z-axis scroll
+      Fix from v149g4:
+      - darkest bands are thinner and less frequent
+      - no large black fields dominating the chrome
+      - more silver / grey / cool-white return values
+      - still enough dark cuts to read bevels
     */
     liveEnvScene = new THREE.Scene();
 
     const sphere = new THREE.Mesh(
       new THREE.SphereGeometry(5, 96, 48),
-      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x0b0b0d })
+      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x17181c })
     );
     liveEnvScene.add(sphere);
 
@@ -7045,46 +7045,63 @@ document.addEventListener('DOMContentLoaded', function () {
       return band;
     }
 
-    /*
-      Asymmetric orbit walls:
-      One strong key wall, one dark-cut wall, one softer return wall.
-      The uneven angles are deliberate so Y rotation does not visually cancel.
-    */
-    const key = addWall("strong_key_wall", 214, 3.95, 1.00, 0.55);
+    const key = addWall("balanced_key_wall", 214, 3.95, 1.00, 0.55);
     key("hot_white_key", 1.36, 20.5, 0.16, 0xffffff, 1.00, -0.8);
-    key("thin_cool_white", 0.92, 17.5, 0.06, 0xdfe9ff, 0.76, 0.75);
-    key("deep_black_cut", 0.28, 21.5, 0.34, 0x000000, 0.96, 0.15);
-    key("mid_silver_step", -0.36, 19.0, 0.16, 0x8a8d96, 0.58, -0.5);
-    key("lower_white_edge", -1.04, 16.5, 0.08, 0xffffff, 0.70, 1.05);
+    key("thin_cool_white", 0.92, 17.5, 0.06, 0xdfe9ff, 0.78, 0.75);
+    key("thin_black_cut", 0.30, 20.0, 0.105, 0x000000, 0.78, 0.15);
+    key("silver_body", -0.10, 20.5, 0.24, 0xaeb3bf, 0.62, -0.25);
+    key("mid_silver_step", -0.56, 18.0, 0.16, 0x777b86, 0.52, -0.5);
+    key("lower_white_edge", -1.04, 16.5, 0.08, 0xffffff, 0.72, 1.05);
 
-    const dark = addWall("dark_cut_wall", 318, 3.75, 0.90, -0.35);
-    dark("large_charcoal_field", 0.82, 20.0, 0.50, 0x111216, 0.95, -0.4);
-    dark("narrow_white_slash", 0.10, 15.0, 0.07, 0xffffff, 0.84, 1.2);
-    dark("cool_grey_band", -0.56, 18.0, 0.18, 0x5d626d, 0.64, -1.0);
-    dark("low_black_cut", -1.28, 20.5, 0.28, 0x020202, 0.82, 0.3);
+    const contrast = addWall("controlled_contrast_wall", 318, 3.75, 0.82, -0.35);
+    contrast("cool_white_rim", 1.02, 17.0, 0.12, 0xf0f4ff, 0.74, 0.4);
+    contrast("charcoal_thin_cut", 0.42, 19.0, 0.135, 0x111216, 0.60, -0.4);
+    contrast("cool_grey_band", -0.10, 19.5, 0.22, 0x7f8796, 0.58, -1.0);
+    contrast("pale_silver_return", -0.72, 17.0, 0.12, 0xc9ced8, 0.52, 0.8);
+    contrast("low_dark_line", -1.28, 18.0, 0.10, 0x050505, 0.44, 0.3);
 
-    const ret = addWall("soft_return_wall", 76, 4.10, 0.64, 0.15);
-    ret("soft_white_return", 1.18, 18.0, 0.10, 0xf4f4f0, 0.62, -0.6);
-    ret("smoke_mid_return", 0.30, 19.0, 0.24, 0x404249, 0.58, 0.7);
-    ret("dim_blue_return", -0.72, 16.0, 0.12, 0x9ca5b9, 0.36, -0.1);
+    const ret = addWall("soft_return_wall", 76, 4.10, 0.72, 0.15);
+    ret("soft_white_return", 1.18, 18.0, 0.10, 0xf4f4f0, 0.72, -0.6);
+    ret("silver_mid_return", 0.30, 19.0, 0.24, 0x9fa4ad, 0.52, 0.7);
+    ret("dim_blue_return", -0.72, 16.0, 0.12, 0x9ca5b9, 0.44, -0.1);
+    ret("small_dark_separator", -1.18, 15.0, 0.07, 0x17181c, 0.34, 0.5);
+
+    const bright = addWall("bright_return_wall", 148, 3.85, 0.58, -0.10);
+    bright("broad_soft_white", 0.98, 17.5, 0.16, 0xffffff, 0.54, 0.2);
+    bright("soft_warm_silver", 0.22, 18.5, 0.20, 0xc8c2b8, 0.40, -0.4);
+    bright("thin_shadow_line", -0.48, 16.5, 0.055, 0x202126, 0.28, 0.9);
+    bright("lower_cool_edge", -1.08, 14.5, 0.08, 0xdfe9ff, 0.38, -0.7);
 
     /*
-      Very restrained fills only: enough to avoid total dead black,
-      not enough to flatten the contrast.
+      Restrained fills to lift the overall environment so the logo does not sit black.
     */
     const overhead = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 2.0),
       new THREE.MeshBasicMaterial({
-        color: 0xbec4d0,
+        color: 0xd4d8e2,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.10,
+        opacity: 0.16,
         depthWrite: false
       })
     );
     overhead.position.set(0, 3.15, 0);
     overhead.rotation.x = Math.PI / 2;
     liveEnvRig.add(overhead);
+
+    const floorFill = new THREE.Mesh(
+      new THREE.PlaneGeometry(18, 1.8),
+      new THREE.MeshBasicMaterial({
+        color: 0x5e626b,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.12,
+        depthWrite: false
+      })
+    );
+    floorFill.position.set(0, -2.85, 0);
+    floorFill.rotation.x = Math.PI / 2;
+    liveEnvRig.add(floorFill);
 
     liveEnvTarget = new THREE.WebGLCubeRenderTarget(512, {
       type: THREE.UnsignedByteType,
@@ -7099,7 +7116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g4_contrast_tonal_orbit_bands_scroll_readability",
+      mode: "v149g5_balanced_tonal_orbit_bands_reduced_black_coverage",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7273,14 +7290,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
       proofChromeMaterials.forEach(function (mat) {
         mat.envMap = liveEnvTarget.texture;
-        mat.envMapIntensity = 7.45 + energy * 0.95;
+        mat.envMapIntensity = 7.70 + energy * 0.70;
         if ("roughness" in mat) mat.roughness = 0.011;
         if ("metalness" in mat) mat.metalness = 1.0;
         mat.needsUpdate = true;
       });
     }
 
-    renderer.toneMappingExposure = 1.78;
+    renderer.toneMappingExposure = 1.86;
     renderer.render(scene, camera);
 
     if (loaded && !firstFrameRendered) {
