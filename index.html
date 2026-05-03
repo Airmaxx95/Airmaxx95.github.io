@@ -3632,7 +3632,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g2-tonal-studio-env" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g3-thin-horizontal-orbit-bands" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -6999,97 +6999,138 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function makeFallbackEnvironment() {
     /*
-      v149g2 tonal studio reflection environment:
+      v149g3 thin horizontal orbit bands:
       Hidden CubeCamera reflection world only.
-      GLB and camera remain static.
-      The reflection environment loops around Y and z-axis scroll controls speed/direction.
+      Static GLB + static camera preserved.
 
-      Design goal:
-      - consistent reflection read
-      - fluid movement
-      - tonal variation, not pure black and white bars
-      - long continuous studio bands, not random fragments/blobs
+      Design:
+      - brighter overall values
+      - many thin horizontal bands of varied thickness
+      - tonal variation beyond black/white
+      - bands arranged around orbiting walls
+      - environment rotates on Y axis with z-axis scroll control
     */
     liveEnvScene = new THREE.Scene();
 
     const sphere = new THREE.Mesh(
       new THREE.SphereGeometry(5, 96, 48),
-      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x101010 })
+      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x2f3034 })
     );
     liveEnvScene.add(sphere);
 
     liveEnvRig = new THREE.Group();
     liveEnvScene.add(liveEnvRig);
 
-    function addWall(name, angleDeg, radius, xOffset, opacityBias) {
+    function addWall(name, angleDeg, radius, opacityBias) {
       const wall = new THREE.Group();
       wall.name = name;
       const a = THREE.MathUtils.degToRad(angleDeg);
-      wall.position.set(Math.sin(a) * radius + xOffset, 0, Math.cos(a) * radius);
+      wall.position.set(Math.sin(a) * radius, 0, Math.cos(a) * radius);
       wall.rotation.y = a + Math.PI;
       liveEnvRig.add(wall);
 
-      function band(label, y, width, height, color, opacity, x) {
+      function band(label, y, width, height, color, opacity, xOffset) {
         const mat = new THREE.MeshBasicMaterial({
           color: color,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: Math.max(0.05, Math.min(1, opacity * opacityBias)),
+          opacity: Math.max(0.08, Math.min(1, opacity * opacityBias)),
           depthWrite: false
         });
         const strip = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
         strip.name = name + "_" + label;
-        strip.position.set(x || 0, y, 0);
+        strip.position.set(xOffset || 0, y, 0);
         wall.add(strip);
-        return strip;
       }
 
       return band;
     }
 
-    const rear = addWall("rear_tonal_wall", 205, 3.95, 0.55, 1.00);
-    rear("warm_white_key", 1.34, 20.5, 0.18, 0xf7f4ec, 0.96, -0.50);
-    rear("pale_cool_strip", 0.82, 18.5, 0.09, 0xdde8ff, 0.72, 0.85);
-    rear("charcoal_cut", 0.12, 21.0, 0.40, 0x151515, 0.92, 0.25);
-    rear("mid_grey_body", -0.54, 20.0, 0.28, 0x6d7077, 0.55, -0.70);
-    rear("lower_soft_white", -1.22, 17.0, 0.12, 0xffffff, 0.56, 1.10);
+    /*
+      Multiple orbit walls, deliberately uneven angles.
+      More light values than dark values so the chrome does not fall flat.
+    */
+    const walls = [
+      addWall("key_wall", 210, 3.95, 1.00),
+      addWall("cool_wall", 292, 3.75, 0.86),
+      addWall("return_wall", 58, 4.05, 0.70),
+      addWall("side_wall", 336, 3.60, 0.64)
+    ];
 
-    const side = addWall("side_tonal_wall", 305, 3.65, -0.40, 0.78);
-    side("silver_rim", 1.18, 16.0, 0.16, 0xf2f3f4, 0.82, 0.35);
-    side("smoke_cut", 0.34, 18.0, 0.34, 0x24262a, 0.80, -0.60);
-    side("soft_lilac_mid", -0.42, 15.0, 0.22, 0xb9b7c6, 0.50, 0.80);
-    side("thin_white_return", -1.10, 13.0, 0.08, 0xffffff, 0.42, -0.20);
+    const tones = [
+      0xffffff, // clear white
+      0xf7f4ec, // warm studio white
+      0xeef3ff, // cool white
+      0xd7dce8, // pale grey-blue
+      0xbec2cf, // mid silver
+      0x8f9299, // medium grey
+      0x575a61, // dark grey
+      0x202126  // dark cut
+    ];
 
-    const returnWall = addWall("return_tonal_wall", 82, 4.10, 0.25, 0.58);
-    returnWall("dim_cool_return", 1.05, 18.0, 0.12, 0xcfd7ea, 0.56, -0.90);
-    returnWall("deep_return_cut", 0.03, 21.5, 0.36, 0x080808, 0.72, 0.50);
-    returnWall("soft_grey_floor", -0.88, 17.5, 0.18, 0x8f9094, 0.36, 0.10);
+    const bandRows = [
+      { y: 1.62, h: 0.045, tone: 0, op: 1.00, w: 20.5, x: -0.5 },
+      { y: 1.38, h: 0.075, tone: 1, op: 0.92, w: 19.0, x: 0.7 },
+      { y: 1.06, h: 0.035, tone: 2, op: 0.82, w: 17.5, x: -1.0 },
+      { y: 0.78, h: 0.120, tone: 3, op: 0.72, w: 21.0, x: 0.2 },
+      { y: 0.42, h: 0.055, tone: 5, op: 0.58, w: 18.0, x: 1.2 },
+      { y: 0.10, h: 0.180, tone: 7, op: 0.70, w: 20.5, x: -0.4 },
+      { y: -0.18, h: 0.040, tone: 0, op: 0.86, w: 16.0, x: 0.9 },
+      { y: -0.42, h: 0.090, tone: 4, op: 0.64, w: 19.5, x: -1.3 },
+      { y: -0.78, h: 0.050, tone: 2, op: 0.74, w: 18.5, x: 0.4 },
+      { y: -1.02, h: 0.140, tone: 6, op: 0.48, w: 20.0, x: -0.8 },
+      { y: -1.32, h: 0.040, tone: 0, op: 0.70, w: 15.5, x: 1.1 },
+      { y: -1.58, h: 0.070, tone: 1, op: 0.54, w: 17.5, x: -0.2 }
+    ];
 
+    walls.forEach((wallBand, wallIndex) => {
+      bandRows.forEach((row, rowIndex) => {
+        // vary the rows per wall without becoming random/noisy
+        const toneIndex = (row.tone + wallIndex + (rowIndex % 2)) % tones.length;
+        const width = row.w - wallIndex * 1.4 + (rowIndex % 3) * 0.55;
+        const x = row.x + (wallIndex - 1.5) * 0.35;
+        const opacity = row.op * (1 - wallIndex * 0.08);
+        wallBand(
+          "band_" + rowIndex,
+          row.y + (wallIndex - 1.5) * 0.03,
+          width,
+          row.h,
+          tones[toneIndex],
+          opacity,
+          x
+        );
+      });
+    });
+
+    /*
+      Soft overhead/floor tonal fills to keep reflections consistent,
+      but bright enough to avoid the dull dark state.
+    */
     const overhead = new THREE.Mesh(
-      new THREE.PlaneGeometry(18, 3.2),
+      new THREE.PlaneGeometry(18, 2.6),
       new THREE.MeshBasicMaterial({
-        color: 0xe9edf4,
+        color: 0xf0f2f6,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.26,
+        opacity: 0.22,
         depthWrite: false
       })
     );
-    overhead.position.set(0, 3.2, 0);
+    overhead.position.set(0, 3.15, 0);
     overhead.rotation.x = Math.PI / 2;
     liveEnvRig.add(overhead);
 
     const floorFill = new THREE.Mesh(
-      new THREE.PlaneGeometry(18, 2.5),
+      new THREE.PlaneGeometry(18, 2.2),
       new THREE.MeshBasicMaterial({
-        color: 0x2b2b2d,
+        color: 0x777982,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.34,
+        opacity: 0.20,
         depthWrite: false
       })
     );
-    floorFill.position.set(0, -2.9, 0);
+    floorFill.position.set(0, -2.85, 0);
     floorFill.rotation.x = Math.PI / 2;
     liveEnvRig.add(floorFill);
 
@@ -7106,7 +7147,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g2_tonal_studio_environment_y_axis_loop",
+      mode: "v149g3_thin_horizontal_orbit_bands_bright_tonal_variation",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7280,14 +7321,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
       proofChromeMaterials.forEach(function (mat) {
         mat.envMap = liveEnvTarget.texture;
-        mat.envMapIntensity = 7.65 + energy * 0.55;
-        if ("roughness" in mat) mat.roughness = 0.012;
+        mat.envMapIntensity = 8.35 + energy * 0.55;
+        if ("roughness" in mat) mat.roughness = 0.010;
         if ("metalness" in mat) mat.metalness = 1.0;
         mat.needsUpdate = true;
       });
     }
 
-    renderer.toneMappingExposure = 1.86;
+    renderer.toneMappingExposure = 1.94;
     renderer.render(scene, camera);
 
     if (loaded && !firstFrameRendered) {
