@@ -3632,7 +3632,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g6-micro-contrast-polish" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g7b-safe-idle-loop" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7116,7 +7116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g6_micro_contrast_polish_bevel_readability",
+      mode: "v149g7b_safe_idle_loop_zaxis_feel_preserved",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7260,6 +7260,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const scrollDrive = zaxis.velocity + zaxis.targetVelocity + reactive.velocityMemory;
 
+    /*
+      v149g7b safe idle loop:
+      Preserve the v149g6 scroll feel exactly.
+      Add only a tiny independent clock so the reflection never freezes when slide velocity settles.
+    */
     const idleSpeed = 0.064;
     const scrubSpeed = THREE.MathUtils.clamp(scrollDrive * 0.036, -3.15, 3.15);
     const targetVelocity = idleSpeed + scrubSpeed;
@@ -7268,7 +7273,10 @@ document.addEventListener('DOMContentLoaded', function () {
     liveEnvironmentMotion.velocity += (targetVelocity - liveEnvironmentMotion.velocity) * smoothing;
     liveEnvironmentMotion.phase += liveEnvironmentMotion.velocity * dt;
 
-    const p = liveEnvironmentMotion.phase;
+    // Very small separate drift only; does not replace the original motion model.
+    liveEnvironmentMotion.clockPhase += 0.018 * dt;
+
+    const p = liveEnvironmentMotion.phase + liveEnvironmentMotion.clockPhase;
 
     logoGroup.rotation.x = 0;
     logoGroup.rotation.y = 0;
