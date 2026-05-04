@@ -3632,7 +3632,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g8-performance-pass" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g6-micro-contrast-polish" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -6942,13 +6942,6 @@ document.addEventListener('DOMContentLoaded', function () {
     lastNow: 0,
     clockPhase: 0
   };
-
-  const reflectionPerformance = {
-    frame: 0,
-    isMobile: window.matchMedia && window.matchMedia("(max-width: 768px)").matches,
-    cubeUpdateEvery: window.matchMedia && window.matchMedia("(max-width: 768px)").matches ? 3 : 2,
-    cubeSize: window.matchMedia && window.matchMedia("(max-width: 768px)").matches ? 256 : 384
-  };
   let loaded = false;
   let firstFrameRendered = false;
 
@@ -6960,12 +6953,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 1.15 : 1.65));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 1.35 : 1.8));
     renderer.setSize(w, h, false);
-
-    reflectionPerformance.isMobile = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
-    reflectionPerformance.cubeUpdateEvery = reflectionPerformance.isMobile ? 3 : 2;
-
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -7114,11 +7103,10 @@ document.addEventListener('DOMContentLoaded', function () {
     floorFill.rotation.x = Math.PI / 2;
     liveEnvRig.add(floorFill);
 
-    liveEnvTarget = new THREE.WebGLCubeRenderTarget(reflectionPerformance.cubeSize, {
+    liveEnvTarget = new THREE.WebGLCubeRenderTarget(512, {
       type: THREE.UnsignedByteType,
-      generateMipmaps: false,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter
     });
 
     liveEnvCubeCamera = new THREE.CubeCamera(0.1, 10, liveEnvTarget);
@@ -7128,7 +7116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g8_performance_pass_adaptive_cubecamera",
+      mode: "v149g6_micro_contrast_polish_bevel_readability",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7295,21 +7283,8 @@ document.addEventListener('DOMContentLoaded', function () {
       liveEnvRig.rotation.y = p;
       liveEnvRig.rotation.z = 0;
 
-      reflectionPerformance.frame += 1;
-
-      /*
-        v149g8 performance pass:
-        The hidden reflection world still moves every animation frame,
-        but CubeCamera renders are throttled. This preserves the approved
-        scroll feel while reducing WebGL cost, especially on mobile.
-      */
-      if (
-        reflectionPerformance.frame % reflectionPerformance.cubeUpdateEvery === 0 ||
-        Math.abs(scrollDrive) > 0.08
-      ) {
-        liveEnvCubeCamera.update(renderer, liveEnvScene);
-        scene.environment = liveEnvTarget.texture;
-      }
+      liveEnvCubeCamera.update(renderer, liveEnvScene);
+      scene.environment = liveEnvTarget.texture;
     }
 
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
