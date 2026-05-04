@@ -3851,7 +3851,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g17-final-edge-lighting" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g17b-reflection-edge-bands" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7151,7 +7151,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let THREE, GLTFLoader, RGBELoader, DRACOLoader;
   let renderer, scene, camera, logoGroup, pmremGenerator;
-  let edgeLightRig, edgeLightA, edgeLightB, edgeLightC;
   let liveEnvScene, liveEnvRig, liveEnvCubeCamera, liveEnvTarget;
   const proofChromeMaterials = [];
   const proofEnvironment = { phase: 0, lastNow: 0 };
@@ -7167,31 +7166,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
-
-  function createFinalEdgeLightingRig() {
-    /*
-      v149g17 final GLB edge lighting:
-      Small controlled rim/edge lights only.
-      This does not move the GLB, camera, or approved tonal environment.
-      It lifts bevel edges so the chrome reads on mobile and desktop.
-    */
-    edgeLightRig = new THREE.Group();
-    edgeLightRig.name = "PaletteKnifeFinalEdgeLightingRig";
-
-    edgeLightA = new THREE.DirectionalLight(0xffffff, 1.75);
-    edgeLightA.position.set(-2.8, 1.55, 2.35);
-    edgeLightRig.add(edgeLightA);
-
-    edgeLightB = new THREE.DirectionalLight(0xdde8ff, 1.15);
-    edgeLightB.position.set(2.6, 0.85, 2.1);
-    edgeLightRig.add(edgeLightB);
-
-    edgeLightC = new THREE.DirectionalLight(0xffffff, 0.72);
-    edgeLightC.position.set(0.0, -1.2, 2.4);
-    edgeLightRig.add(edgeLightC);
-
-    scene.add(edgeLightRig);
-  }
 
   function updateHolderSize() {
     if (!holder || !renderer || !camera) return;
@@ -7244,15 +7218,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function makeFallbackEnvironment() {
     /*
-      v149g5 balanced tonal orbit bands:
-      Hidden CubeCamera reflection world only.
-      Static GLB + static camera preserved.
-
-      Fix from v149g4:
-      - darkest bands are thinner and less frequent
-      - no large black fields dominating the chrome
-      - more silver / grey / cool-white return values
-      - still enough dark cuts to read bevels
+      v149g17b Blender-like reflection edge bands:
+      Scene lights alone do not read strongly on chrome.
+      This keeps the approved v149g6 tonal environment but adds narrow,
+      bright rim reflection bands inside the CubeCamera world so bevel edges
+      catch white glints like the Blender reference.
     */
     liveEnvScene = new THREE.Scene();
 
@@ -7285,12 +7255,14 @@ document.addEventListener('DOMContentLoaded', function () {
         strip.name = name + "_" + label;
         strip.position.set(xOffset || 0, y, 0);
         wall.add(strip);
+        return strip;
       }
 
-      return band;
+      return { wall, band };
     }
 
-    const key = addWall("balanced_key_wall", 214, 3.95, 1.00, 0.55);
+    const keyObj = addWall("balanced_key_wall", 214, 3.95, 1.00, 0.55);
+    const key = keyObj.band;
     key("hot_white_key", 1.36, 20.5, 0.145, 0xffffff, 1.00, -0.8);
     key("thin_cool_white", 0.92, 17.5, 0.06, 0xdfe9ff, 0.78, 0.75);
     key("thin_black_cut", 0.30, 20.0, 0.085, 0x000000, 0.72, 0.15);
@@ -7298,28 +7270,44 @@ document.addEventListener('DOMContentLoaded', function () {
     key("mid_silver_step", -0.56, 18.0, 0.16, 0x777b86, 0.52, -0.5);
     key("lower_white_edge", -1.04, 16.5, 0.065, 0xffffff, 0.78, 1.05);
 
-    const contrast = addWall("controlled_contrast_wall", 318, 3.75, 0.82, -0.35);
+    const contrastObj = addWall("controlled_contrast_wall", 318, 3.75, 0.82, -0.35);
+    const contrast = contrastObj.band;
     contrast("cool_white_rim", 1.02, 17.0, 0.10, 0xf0f4ff, 0.80, 0.4);
     contrast("charcoal_thin_cut", 0.42, 19.0, 0.105, 0x111216, 0.56, -0.4);
     contrast("cool_grey_band", -0.10, 19.5, 0.22, 0x7f8796, 0.58, -1.0);
     contrast("pale_silver_return", -0.72, 17.0, 0.12, 0xc9ced8, 0.52, 0.8);
     contrast("low_dark_line", -1.28, 18.0, 0.10, 0x050505, 0.44, 0.3);
 
-    const ret = addWall("soft_return_wall", 76, 4.10, 0.72, 0.15);
+    const retObj = addWall("soft_return_wall", 76, 4.10, 0.72, 0.15);
+    const ret = retObj.band;
     ret("soft_white_return", 1.18, 18.0, 0.10, 0xf4f4f0, 0.72, -0.6);
     ret("silver_mid_return", 0.30, 19.0, 0.24, 0x9fa4ad, 0.52, 0.7);
     ret("dim_blue_return", -0.72, 16.0, 0.12, 0x9ca5b9, 0.44, -0.1);
     ret("small_dark_separator", -1.18, 15.0, 0.07, 0x17181c, 0.34, 0.5);
 
-    const bright = addWall("bright_return_wall", 148, 3.85, 0.58, -0.10);
+    const brightObj = addWall("bright_return_wall", 148, 3.85, 0.58, -0.10);
+    const bright = brightObj.band;
     bright("broad_soft_white", 0.98, 17.5, 0.16, 0xffffff, 0.54, 0.2);
     bright("soft_warm_silver", 0.22, 18.5, 0.20, 0xc8c2b8, 0.40, -0.4);
     bright("thin_shadow_line", -0.48, 16.5, 0.055, 0x202126, 0.28, 0.9);
     bright("lower_cool_edge", -1.08, 14.5, 0.08, 0xdfe9ff, 0.38, -0.7);
 
     /*
-      Restrained fills to lift the overall environment so the logo does not sit black.
+      Dedicated edge glint bands:
+      These are intentionally narrow, high-opacity strips placed high/side in the
+      reflection world. They create edge catches on chrome without moving geometry.
     */
+    const edgeObj = addWall("blender_edge_glint_wall", 268, 3.35, 1.00, 0);
+    const edge = edgeObj.band;
+    edge("upper_blade_glint", 1.62, 15.5, 0.035, 0xffffff, 1.00, -1.0);
+    edge("mid_blade_glint", 0.74, 13.0, 0.028, 0xf8fbff, 0.92, 1.15);
+    edge("lower_blade_glint", -0.92, 12.0, 0.032, 0xffffff, 0.82, -0.25);
+
+    const edgeObj2 = addWall("secondary_edge_glint_wall", 24, 3.50, 0.82, 0);
+    const edge2 = edgeObj2.band;
+    edge2("cool_edge_line", 1.28, 14.0, 0.030, 0xdfe9ff, 0.82, 0.5);
+    edge2("tiny_white_edge", -0.22, 10.0, 0.024, 0xffffff, 0.72, -0.8);
+
     const overhead = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 2.0),
       new THREE.MeshBasicMaterial({
@@ -7361,7 +7349,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g17_final_glb_edge_lighting",
+      mode: "v149g17b_blender_like_reflection_edge_bands",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7410,8 +7398,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const rim = new THREE.DirectionalLight(0xffffff, 2.2);
       rim.position.set(-3.1, 1.3, 2.2);
       scene.add(rim);
-
-      createFinalEdgeLightingRig();
 
       setStatus("loading_live_cube_environment");
       makeFallbackEnvironment();
@@ -7537,31 +7523,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
       proofChromeMaterials.forEach(function (mat) {
         mat.envMap = liveEnvTarget.texture;
-        mat.envMapIntensity = 8.08 + energy * 0.60;
-        if ("roughness" in mat) mat.roughness = 0.009;
+        mat.envMapIntensity = 8.35 + energy * 0.58;
+        if ("roughness" in mat) mat.roughness = 0.0085;
         if ("metalness" in mat) mat.metalness = 1.0;
         mat.needsUpdate = true;
       });
     }
 
-    renderer.toneMappingExposure = 1.89;
-    if (edgeLightRig && edgeLightA && edgeLightB && edgeLightC) {
-      /*
-        Very subtle edge-light breathing tied to existing render time.
-        No geometry movement. No camera movement. No environment redesign.
-      */
-      const edgePulse = Math.sin(t * 0.42) * 0.08;
-      const edgeScrollLift = Math.min(0.22, energy * 0.18);
-
-      edgeLightA.intensity = 1.75 + edgePulse + edgeScrollLift;
-      edgeLightB.intensity = 1.15 - edgePulse * 0.55 + edgeScrollLift * 0.55;
-      edgeLightC.intensity = 0.72 + Math.sin(t * 0.31 + 1.7) * 0.04;
-
-      edgeLightRig.rotation.y = 0;
-      edgeLightRig.rotation.x = 0;
-      edgeLightRig.rotation.z = 0;
-    }
-
+    renderer.toneMappingExposure = 1.92;
     renderer.render(scene, camera);
 
     if (loaded && !firstFrameRendered) {
