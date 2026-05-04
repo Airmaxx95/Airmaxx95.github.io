@@ -3597,6 +3597,97 @@ body.is-booting #panelDesc {
   .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
 }
 
+
+/* =========================================================
+   v149g9 — HEADER LOGO SIZE MATCH + MOBILE ASPECT FIX
+   Built from approved v149g6.
+   Scope: header logo sizing only.
+   - GLB canvas now inherits the SVG/WebP fallback footprint.
+   - Desktop GLB and fallback SVG/WebP share the same visual box.
+   - Mobile fallback is protected from horizontal squashing.
+   ========================================================= */
+
+.site-header .webgl-logo-wrap {
+  display: inline-grid !important;
+  place-items: center !important;
+  line-height: 0 !important;
+  width: max-content !important;
+  height: auto !important;
+}
+
+.site-header .webgl-logo-fallback {
+  grid-area: 1 / 1 !important;
+  display: block !important;
+  width: max-content !important;
+  height: auto !important;
+  line-height: 0 !important;
+}
+
+.site-header .logo-svg {
+  display: block !important;
+  width: auto !important;
+  height: 3em !important;
+  max-width: none !important;
+  object-fit: contain !important;
+  transform: none !important;
+}
+
+.site-header .webgl-logo-model {
+  grid-area: 1 / 1 !important;
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  height: 3em !important;
+  aspect-ratio: auto !important;
+  transform: none !important;
+  place-self: stretch !important;
+  overflow: visible !important;
+}
+
+.site-header .webgl-logo-canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Keep fallback occupying the sizing box when GLB is visible. */
+.site-header.is-webgl-logo-ready .webgl-logo-fallback {
+  opacity: 0 !important;
+  visibility: visible !important;
+}
+
+/* Mobile: WebGL remains disabled per current approved behaviour,
+   but SVG/WebP fallback must keep natural aspect and not squash. */
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .site-header .webgl-logo-model {
+    display: none !important;
+  }
+
+  .site-header .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .site-header .logo-svg {
+    width: auto !important;
+    max-width: none !important;
+    object-fit: contain !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .site-header .logo-svg {
+    height: 3.3em !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header .logo-svg {
+    height: 3.3em !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -3632,7 +3723,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g6-micro-contrast-polish" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g9-header-logo-size-match" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -6967,7 +7058,7 @@ document.addEventListener('DOMContentLoaded', function () {
     box.getCenter(center);
     object.position.sub(center);
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    object.scale.setScalar(2.55 / maxDim);
+    object.scale.setScalar(2.82 / maxDim);
     const box2 = new THREE.Box3().setFromObject(object);
     const center2 = new THREE.Vector3();
     box2.getCenter(center2);
