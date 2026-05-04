@@ -3857,39 +3857,59 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g24 — MOBILE GLARE + IPHONE OPTIMISATION
+   v149g25 — MOBILE HYBRID GLARE + SAFARI RESTORE
    Built from approved v149g22.
-   Mobile-only glare boost + mobile WebGL cost reduction.
-   Desktop remains visually unchanged.
+   Desktop/Safari Mac restored by not changing desktop header rules.
+   Mobile only:
+   - no canvas drop-shadow cost
+   - SVG fallback becomes a cheap white glare mask behind/over the GLB
+   - WebGL remains visible but cheaper
    ========================================================= */
 
 @media (max-width: 768px) {
   .site-header.is-webgl-logo-ready .webgl-logo-canvas {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  .site-header.is-webgl-logo-ready .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
     filter:
-      drop-shadow(0 0 2px rgba(255,255,255,1))
-      drop-shadow(0 0 8px rgba(235,242,255,0.82))
-      drop-shadow(0 0 18px rgba(255,255,255,0.48))
-      drop-shadow(0 0 30px rgba(220,232,255,0.22)) !important;
+      brightness(0)
+      invert(1)
+      drop-shadow(0 0 2px rgba(255,255,255,0.95))
+      drop-shadow(0 0 7px rgba(235,242,255,0.72))
+      drop-shadow(0 0 16px rgba(255,255,255,0.36)) !important;
     -webkit-filter:
-      drop-shadow(0 0 2px rgba(255,255,255,1))
-      drop-shadow(0 0 8px rgba(235,242,255,0.82))
-      drop-shadow(0 0 18px rgba(255,255,255,0.48))
-      drop-shadow(0 0 30px rgba(220,232,255,0.22)) !important;
+      brightness(0)
+      invert(1)
+      drop-shadow(0 0 2px rgba(255,255,255,0.95))
+      drop-shadow(0 0 7px rgba(235,242,255,0.72))
+      drop-shadow(0 0 16px rgba(255,255,255,0.36)) !important;
+    transform: translateZ(0);
+  }
+
+  .site-header.is-webgl-logo-ready .webgl-logo-model {
+    opacity: 0.94 !important;
   }
 }
 
 @media (max-width: 480px) {
-  .site-header.is-webgl-logo-ready .webgl-logo-canvas {
+  .site-header.is-webgl-logo-ready .webgl-logo-fallback {
     filter:
+      brightness(0)
+      invert(1)
       drop-shadow(0 0 2.2px rgba(255,255,255,1))
-      drop-shadow(0 0 9px rgba(235,242,255,0.86))
-      drop-shadow(0 0 20px rgba(255,255,255,0.52))
-      drop-shadow(0 0 34px rgba(220,232,255,0.24)) !important;
+      drop-shadow(0 0 8px rgba(235,242,255,0.78))
+      drop-shadow(0 0 18px rgba(255,255,255,0.40)) !important;
     -webkit-filter:
+      brightness(0)
+      invert(1)
       drop-shadow(0 0 2.2px rgba(255,255,255,1))
-      drop-shadow(0 0 9px rgba(235,242,255,0.86))
-      drop-shadow(0 0 20px rgba(255,255,255,0.52))
-      drop-shadow(0 0 34px rgba(220,232,255,0.24)) !important;
+      drop-shadow(0 0 8px rgba(235,242,255,0.78))
+      drop-shadow(0 0 18px rgba(255,255,255,0.40)) !important;
   }
 }
 
@@ -3928,7 +3948,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g24-mobile-glare-iphone-optimised" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g25-mobile-hybrid-glare-safari-restore" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7229,11 +7249,10 @@ document.addEventListener('DOMContentLoaded', function () {
   let THREE, GLTFLoader, RGBELoader, DRACOLoader;
   let renderer, scene, camera, logoGroup, pmremGenerator;
   let liveEnvScene, liveEnvRig, liveEnvCubeCamera, liveEnvTarget;
-  const mobileOptimisation = {
+  const mobileHeaderPerf = {
     isMobile: window.matchMedia && window.matchMedia("(max-width: 768px)").matches,
     frame: 0,
-    cubeSize: window.matchMedia && window.matchMedia("(max-width: 768px)").matches ? 256 : 512,
-    idleUpdateEvery: window.matchMedia && window.matchMedia("(max-width: 768px)").matches ? 3 : 1
+    idleUpdateEvery: window.matchMedia && window.matchMedia("(max-width: 768px)").matches ? 8 : 1
   };
   const proofChromeMaterials = [];
   const proofEnvironment = { phase: 0, lastNow: 0 };
@@ -7255,11 +7274,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 1.65 : 1.8));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 1.25 : 1.8));
     renderer.setSize(w, h, false);
 
-    mobileOptimisation.isMobile = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
-    mobileOptimisation.idleUpdateEvery = mobileOptimisation.isMobile ? 3 : 1;
+    mobileHeaderPerf.isMobile = window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+    mobileHeaderPerf.idleUpdateEvery = mobileHeaderPerf.isMobile ? 8 : 1;
 
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -7409,10 +7428,10 @@ document.addEventListener('DOMContentLoaded', function () {
     floorFill.rotation.x = Math.PI / 2;
     liveEnvRig.add(floorFill);
 
-    liveEnvTarget = new THREE.WebGLCubeRenderTarget(mobileOptimisation.cubeSize, {
+    liveEnvTarget = new THREE.WebGLCubeRenderTarget(mobileHeaderPerf.isMobile ? 128 : 512, {
       type: THREE.UnsignedByteType,
-      generateMipmaps: !mobileOptimisation.isMobile,
-      minFilter: mobileOptimisation.isMobile ? THREE.LinearFilter : THREE.LinearMipmapLinearFilter,
+      generateMipmaps: !mobileHeaderPerf.isMobile,
+      minFilter: mobileHeaderPerf.isMobile ? THREE.LinearFilter : THREE.LinearMipmapLinearFilter,
       magFilter: THREE.LinearFilter
     });
 
@@ -7423,7 +7442,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g24_mobile_glare_iphone_optimised",
+      mode: "v149g25_mobile_hybrid_glare_safari_restore",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7590,11 +7609,11 @@ document.addEventListener('DOMContentLoaded', function () {
       liveEnvRig.rotation.y = p;
       liveEnvRig.rotation.z = 0;
 
-      mobileOptimisation.frame += 1;
+      mobileHeaderPerf.frame += 1;
       const shouldUpdateReflection =
-        !mobileOptimisation.isMobile ||
-        Math.abs(scrollDrive) > 0.08 ||
-        mobileOptimisation.frame % mobileOptimisation.idleUpdateEvery === 0;
+        !mobileHeaderPerf.isMobile ||
+        Math.abs(scrollDrive) > 0.16 ||
+        mobileHeaderPerf.frame % mobileHeaderPerf.idleUpdateEvery === 0;
 
       if (shouldUpdateReflection) {
         liveEnvCubeCamera.update(renderer, liveEnvScene);
