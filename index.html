@@ -3817,13 +3817,11 @@ body.is-booting #panelDesc {
 }
 
 
-
-
 /* =========================================================
-   v149g23 — DYNAMIC DIRECTIONAL ALPHA GLARE
-   Alpha-safe. No composer. No black buffer.
-   Offset drop-shadows are driven by JS variables so glare feels directional,
-   not like a uniform halo.
+   v149g22 — ALPHA SAFE GLARE / NO BLACK BUFFER
+   Built from approved v149g16.
+   Removes composer/bloom path entirely.
+   Uses transparent WebGL render + alpha-based CSS glare so no black plate can appear.
    ========================================================= */
 
 .site-header .webgl-logo-model,
@@ -3833,32 +3831,27 @@ body.is-booting #panelDesc {
 }
 
 .site-header.is-webgl-logo-ready .webgl-logo-canvas {
-  --pk-glare-x: 1.8px;
-  --pk-glare-y: 0.2px;
-  --pk-glare-soft: 7px;
-  --pk-glare-core: 0.88;
-  --pk-glare-wide: 0.28;
   filter:
-    drop-shadow(calc(var(--pk-glare-x) * -0.7) calc(var(--pk-glare-y) * -0.4) 1.1px rgba(255,255,255,var(--pk-glare-core)))
-    drop-shadow(var(--pk-glare-x) var(--pk-glare-y) var(--pk-glare-soft) rgba(235,242,255,0.58))
-    drop-shadow(calc(var(--pk-glare-x) * 2.6) calc(var(--pk-glare-y) * 0.8) 14px rgba(255,255,255,var(--pk-glare-wide))) !important;
+    drop-shadow(0 0 1.5px rgba(255,255,255,0.95))
+    drop-shadow(0 0 5px rgba(235,242,255,0.62))
+    drop-shadow(0 0 13px rgba(255,255,255,0.30)) !important;
   -webkit-filter:
-    drop-shadow(calc(var(--pk-glare-x) * -0.7) calc(var(--pk-glare-y) * -0.4) 1.1px rgba(255,255,255,var(--pk-glare-core)))
-    drop-shadow(var(--pk-glare-x) var(--pk-glare-y) var(--pk-glare-soft) rgba(235,242,255,0.58))
-    drop-shadow(calc(var(--pk-glare-x) * 2.6) calc(var(--pk-glare-y) * 0.8) 14px rgba(255,255,255,var(--pk-glare-wide))) !important;
+    drop-shadow(0 0 1.5px rgba(255,255,255,0.95))
+    drop-shadow(0 0 5px rgba(235,242,255,0.62))
+    drop-shadow(0 0 13px rgba(255,255,255,0.30)) !important;
 }
 
+/* Mobile gets slightly stronger glow because the GLB renders smaller. */
 @media (max-width: 768px) {
   .site-header.is-webgl-logo-ready .webgl-logo-canvas {
-    --pk-glare-soft: 8px;
     filter:
-      drop-shadow(calc(var(--pk-glare-x) * -0.7) calc(var(--pk-glare-y) * -0.4) 1.2px rgba(255,255,255,var(--pk-glare-core)))
-      drop-shadow(var(--pk-glare-x) var(--pk-glare-y) var(--pk-glare-soft) rgba(235,242,255,0.64))
-      drop-shadow(calc(var(--pk-glare-x) * 2.7) calc(var(--pk-glare-y) * 0.8) 16px rgba(255,255,255,var(--pk-glare-wide))) !important;
+      drop-shadow(0 0 1.5px rgba(255,255,255,1))
+      drop-shadow(0 0 6px rgba(235,242,255,0.68))
+      drop-shadow(0 0 15px rgba(255,255,255,0.34)) !important;
     -webkit-filter:
-      drop-shadow(calc(var(--pk-glare-x) * -0.7) calc(var(--pk-glare-y) * -0.4) 1.2px rgba(255,255,255,var(--pk-glare-core)))
-      drop-shadow(var(--pk-glare-x) var(--pk-glare-y) var(--pk-glare-soft) rgba(235,242,255,0.64))
-      drop-shadow(calc(var(--pk-glare-x) * 2.7) calc(var(--pk-glare-y) * 0.8) 16px rgba(255,255,255,var(--pk-glare-wide))) !important;
+      drop-shadow(0 0 1.5px rgba(255,255,255,1))
+      drop-shadow(0 0 6px rgba(235,242,255,0.68))
+      drop-shadow(0 0 15px rgba(255,255,255,0.34)) !important;
   }
 }
 
@@ -3897,7 +3890,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g23-dynamic-directional-alpha-glare" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g22-alpha-safe-glare" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7381,7 +7374,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g23_dynamic_directional_alpha_glare",
+      mode: "v149g22_alpha_safe_glare_no_black_buffer",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7563,27 +7556,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     renderer.toneMappingExposure = 1.89;
-    /*
-      v149g23 dynamic directional alpha glare:
-      Moves the alpha-safe glare direction/intensity with the existing
-      environment phase and scroll energy. No black composer buffer.
-    */
-    if (canvas) {
-      const glarePhase = (liveEnvironmentMotion ? liveEnvironmentMotion.phase : 0) + t * 0.18;
-      const glareScroll = Math.min(1, Math.abs(scrollDrive || 0) * 0.12);
-      const gx = Math.cos(glarePhase) * (1.8 + glareScroll * 2.2);
-      const gy = Math.sin(glarePhase * 0.73) * (0.55 + glareScroll * 0.75);
-      const gSoft = 6.5 + Math.sin(glarePhase * 0.57) * 1.4 + glareScroll * 3.2;
-      const gCore = Math.max(0.62, Math.min(1, 0.82 + glareScroll * 0.16 + Math.sin(glarePhase * 0.91) * 0.08));
-      const gWide = Math.max(0.16, Math.min(0.46, 0.25 + glareScroll * 0.14 + Math.cos(glarePhase * 0.37) * 0.05));
-
-      canvas.style.setProperty("--pk-glare-x", gx.toFixed(2) + "px");
-      canvas.style.setProperty("--pk-glare-y", gy.toFixed(2) + "px");
-      canvas.style.setProperty("--pk-glare-soft", gSoft.toFixed(2) + "px");
-      canvas.style.setProperty("--pk-glare-core", gCore.toFixed(3));
-      canvas.style.setProperty("--pk-glare-wide", gWide.toFixed(3));
-    }
-
     renderer.render(scene, camera);
 
     if (loaded && !firstFrameRendered) {
