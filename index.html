@@ -1551,7 +1551,7 @@
   }
 
   .logo-svg {
-    height: 3.3em !important;
+    height: 3.5em !important;
   }
 
   .nav-panel {
@@ -2015,7 +2015,7 @@
   }
 
   .logo-svg {
-    height: 3.3em !important;
+    height: 3.5em !important;
   }
 
   .slide-title-display {
@@ -3661,7 +3661,7 @@ body.is-booting #panelDesc {
    but SVG/WebP fallback must keep natural aspect and not squash. */
 @media (max-width: 900px), (prefers-reduced-motion: reduce) {
   .site-header .webgl-logo-model {
-    display: none !important;
+    display: block !important;
   }
 
   .site-header .webgl-logo-fallback {
@@ -3678,13 +3678,13 @@ body.is-booting #panelDesc {
 
 @media (max-width: 768px) {
   .site-header .logo-svg {
-    height: 3.3em !important;
+    height: 3.5em !important;
   }
 }
 
 @media (max-width: 480px) {
   .site-header .logo-svg {
-    height: 3.3em !important;
+    height: 3.5em !important;
   }
 }
 
@@ -3723,7 +3723,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g9-header-logo-size-match" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g10-mobile-glb-size" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7058,7 +7058,7 @@ document.addEventListener('DOMContentLoaded', function () {
     box.getCenter(center);
     object.position.sub(center);
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    object.scale.setScalar(2.82 / maxDim);
+    object.scale.setScalar(3.10 / maxDim);
     const box2 = new THREE.Box3().setFromObject(object);
     const center2 = new THREE.Vector3();
     box2.getCenter(center2);
