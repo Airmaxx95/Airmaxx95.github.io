@@ -3851,7 +3851,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g17c-visible-fresnel-rim" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g18-blender-style-glare-pass" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7149,9 +7149,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const glbSrc = holder.getAttribute("data-glb-src") || "media/brand/paletteknife_logo.glb?v=147o";
   const envSrc = holder.getAttribute("data-env-src") || "media/brand/studio_small_09.jpg";
 
-  let THREE, GLTFLoader, RGBELoader, DRACOLoader;
-  let renderer, scene, camera, logoGroup, pmremGenerator;
-  let glbRimShell;
+  let THREE, GLTFLoader, RGBELoader, DRACOLoader, EffectComposer, RenderPass, UnrealBloomPass;
+  let renderer, scene, camera, logoGroup, pmremGenerator, composer, renderPass, bloomPass;
   let liveEnvScene, liveEnvRig, liveEnvCubeCamera, liveEnvTarget;
   const proofChromeMaterials = [];
   const proofEnvironment = { phase: 0, lastNow: 0 };
@@ -7168,69 +7167,36 @@ document.addEventListener('DOMContentLoaded', function () {
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
 
-  function createVisibleFresnelRimShell(sourceObject) {
+  function setupBlenderStyleGlarePass(width, height) {
     /*
-      v149g17c visible Fresnel rim:
-      Reflection-only edge bands were too subtle.
-      This adds a very thin additive back-face rim shell so the silhouette and
-      bevel edges read more like a Blender chrome render.
+      v149g18 Blender-style glare pass:
+      Three.js post-process equivalent of Blender compositor Glare/Streaks.
+      This is the missing layer from the Blender reference.
     */
-    if (!sourceObject || !THREE) return null;
+    if (!EffectComposer || !RenderPass || !UnrealBloomPass) return;
 
-    const rimGroup = new THREE.Group();
-    rimGroup.name = "PaletteKnifeVisibleFresnelRimShell";
+    composer = new EffectComposer(renderer);
+    composer.setSize(width, height);
+    composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.3 : 1.8));
 
-    const rimMaterial = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      depthTest: true,
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending,
-      uniforms: {
-        rimColor: { value: new THREE.Color(0xf7fbff) },
-        rimStrength: { value: 0.46 },
-        rimPower: { value: 2.05 }
-      },
-      vertexShader: `
-        varying vec3 vNormalW;
-        varying vec3 vViewDirW;
+    renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
 
-        void main() {
-          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-          vNormalW = normalize(mat3(modelMatrix) * normal);
-          vViewDirW = normalize(cameraPosition - worldPosition.xyz);
-          gl_Position = projectionMatrix * viewMatrix * worldPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 rimColor;
-        uniform float rimStrength;
-        uniform float rimPower;
-        varying vec3 vNormalW;
-        varying vec3 vViewDirW;
+    bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(width, height),
+      window.innerWidth <= 768 ? 0.55 : 0.70,
+      window.innerWidth <= 768 ? 0.44 : 0.52,
+      window.innerWidth <= 768 ? 0.58 : 0.55
+    );
 
-        void main() {
-          float fresnel = 1.0 - max(dot(normalize(vNormalW), normalize(vViewDirW)), 0.0);
-          fresnel = pow(fresnel, rimPower) * rimStrength;
-          gl_FragColor = vec4(rimColor, fresnel);
-        }
-      `
-    });
+    composer.addPass(bloomPass);
 
-    sourceObject.traverse((child) => {
-      if (!child.isMesh || !child.geometry) return;
-
-      const rimMesh = new THREE.Mesh(child.geometry, rimMaterial);
-      rimMesh.name = "rim_" + (child.name || "mesh");
-      rimMesh.position.copy(child.position);
-      rimMesh.rotation.copy(child.rotation);
-      rimMesh.scale.copy(child.scale).multiplyScalar(1.022);
-      rimGroup.add(rimMesh);
-    });
-
-    sourceObject.add(rimGroup);
-    glbRimShell = rimGroup;
-    return rimGroup;
+    window.PALETTEKNIFE_GLARE_DEBUG = {
+      mode: "v149g18_blender_style_glare_pass",
+      strength: bloomPass.strength,
+      radius: bloomPass.radius,
+      threshold: bloomPass.threshold
+    };
   }
 
   function updateHolderSize() {
@@ -7240,6 +7206,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const h = Math.max(2, Math.floor(rect.height));
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.5 : 1.8));
     renderer.setSize(w, h, false);
+    if (composer) {
+      composer.setSize(w, h);
+      composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.3 : 1.8));
+    }
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
@@ -7401,7 +7371,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g6_micro_contrast_polish_bevel_readability",
+      mode: "v149g18_blender_style_glare_pass",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -7415,12 +7385,18 @@ document.addEventListener('DOMContentLoaded', function () {
         import("https://esm.sh/three@0.160.0"),
         import("https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.160.0"),
         import("https://esm.sh/three@0.160.0/examples/jsm/loaders/RGBELoader.js?deps=three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/DRACOLoader.js?deps=three@0.160.0")
+        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/DRACOLoader.js?deps=three@0.160.0"),
+        import("https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js?deps=three@0.160.0"),
+        import("https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js?deps=three@0.160.0"),
+        import("https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js?deps=three@0.160.0")
       ]);
       THREE = modules[0];
       GLTFLoader = modules[1].GLTFLoader;
       RGBELoader = modules[2].RGBELoader;
       DRACOLoader = modules[3].DRACOLoader;
+      EffectComposer = modules[4].EffectComposer;
+      RenderPass = modules[5].RenderPass;
+      UnrealBloomPass = modules[6].UnrealBloomPass;
     } catch (error) {
       console.warn("PaletteKnife Three.js imports failed", error);
       fallback("three_import_failed");
@@ -7441,6 +7417,10 @@ document.addEventListener('DOMContentLoaded', function () {
       pmremGenerator = new THREE.PMREMGenerator(renderer);
       pmremGenerator.compileEquirectangularShader();
       updateHolderSize();
+      setupBlenderStyleGlarePass(
+        Math.max(2, Math.floor(holder.getBoundingClientRect().width)),
+        Math.max(2, Math.floor(holder.getBoundingClientRect().height))
+      );
 
       const ambient = new THREE.AmbientLight(0xffffff, 0.16);
       scene.add(ambient);
@@ -7471,7 +7451,6 @@ document.addEventListener('DOMContentLoaded', function () {
       try { dracoLoader.dispose(); } catch(e) {}
       tuneMaterials(logoGroup);
       fitObjectToView(logoGroup);
-      createVisibleFresnelRimShell(logoGroup);
       scene.add(logoGroup);
       loaded = true;
       setStatus("three_ready_loaded");
@@ -7576,23 +7555,26 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
       proofChromeMaterials.forEach(function (mat) {
         mat.envMap = liveEnvTarget.texture;
-        mat.envMapIntensity = 7.95 + energy * 0.62;
-        if ("roughness" in mat) mat.roughness = 0.0095;
+        mat.envMapIntensity = 8.85 + energy * 0.72;
+        if ("roughness" in mat) mat.roughness = 0.008;
         if ("metalness" in mat) mat.metalness = 1.0;
         mat.needsUpdate = true;
       });
     }
 
-    renderer.toneMappingExposure = 1.89;
-    if (glbRimShell) {
-      glbRimShell.traverse(function (child) {
-        if (child.material && child.material.uniforms && child.material.uniforms.rimStrength) {
-          child.material.uniforms.rimStrength.value = 0.46 + Math.min(0.14, energy * 0.08) + Math.sin(t * 0.33) * 0.025;
-        }
-      });
+    renderer.toneMappingExposure = 1.96;
+    if (bloomPass) {
+      const glareEnergy = Math.min(0.24, energy * 0.14);
+      bloomPass.strength = (window.innerWidth <= 768 ? 0.55 : 0.70) + glareEnergy + Math.sin(t * 0.28) * 0.035;
+      bloomPass.radius = window.innerWidth <= 768 ? 0.44 : 0.52;
+      bloomPass.threshold = window.innerWidth <= 768 ? 0.58 : 0.55;
     }
 
-    renderer.render(scene, camera);
+    if (composer) {
+      composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
 
     if (loaded && !firstFrameRendered) {
       firstFrameRendered = true;
