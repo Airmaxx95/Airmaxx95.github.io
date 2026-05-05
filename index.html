@@ -4145,6 +4145,27 @@ body.is-booting #panelDesc {
     return window.innerWidth <= 900;
   }
 
+  /* =========================================================
+     v149g21 — MOBILE Z-AXIS / WEBGL BRIDGE HARD OFF
+     Desktop Chrome + Safari are complete and must remain untouched.
+     On mobile/touch devices, do not dispatch the per-frame z-axis
+     CustomEvent used by the WebGL header reflection bridge. The GLB
+     renderer is already disabled on mobile in v149g20; this removes
+     the remaining scroll-reactive bridge cost during z-axis motion.
+     ========================================================= */
+  function isMobileOrTouchRuntime() {
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const noHover = window.matchMedia && window.matchMedia("(hover: none)").matches;
+    const narrow = window.innerWidth <= 900;
+    const touchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+    const ua = navigator.userAgent || "";
+    const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+    return !!(coarse || noHover || narrow || touchPoints || mobileUA);
+  }
+
+  window.PALETTEKNIFE_MOBILE_RUNTIME = isMobileOrTouchRuntime();
+  window.PALETTEKNIFE_ZAXIS_WEBGL_BRIDGE_DISABLED_ON_MOBILE = window.PALETTEKNIFE_MOBILE_RUNTIME;
+
   function isInFooterScrollablePanel(target) {
     if (!target || !target.closest) return false;
     return !!target.closest(
@@ -6606,9 +6627,17 @@ body.is-booting #panelDesc {
     }
 
     renderAll();
-    try {
-      window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
-    } catch (error) {}
+
+    /*
+      Desktop only: this event drives the approved WebGL header reflection bridge.
+      Mobile/touch: never dispatch it, even when the header GLB is visually hidden.
+      This isolates mobile z-axis scroll from all recent WebGL/header reactivity.
+    */
+    if (!window.PALETTEKNIFE_ZAXIS_WEBGL_BRIDGE_DISABLED_ON_MOBILE) {
+      try {
+        window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
+      } catch (error) {}
+    }
 
     if (
       introActive ||
@@ -7351,6 +7380,7 @@ document.addEventListener('DOMContentLoaded', function () {
       holder.innerHTML = "";
       holder.setAttribute("data-webgl-disabled", capability.reason);
     }
+    window.PALETTEKNIFE_WEBGL_HEADER_DISABLED_ON_MOBILE = /mobile_touch_hard_disabled|viewport_/.test(capability.reason || "");
     fallback(capability.reason);
     return;
   }
