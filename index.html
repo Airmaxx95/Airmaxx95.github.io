@@ -4026,6 +4026,55 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g33 — SAFARI GLB VISIBILITY FIX
+   Built from v149g32.
+   Safari desktop only.
+   Fixes Safari showing SVG only after glow-mask restore.
+   Chrome untouched. Mobile untouched.
+   ========================================================= */
+
+@media (min-width: 769px) {
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-model {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-canvas {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
+    background: transparent !important;
+    mix-blend-mode: normal !important;
+    filter:
+      drop-shadow(0 0 1.5px rgba(255,255,255,0.95))
+      drop-shadow(0 0 5px rgba(235,242,255,0.62))
+      drop-shadow(0 0 13px rgba(255,255,255,0.30)) !important;
+    -webkit-filter:
+      drop-shadow(0 0 1.5px rgba(255,255,255,0.95))
+      drop-shadow(0 0 5px rgba(235,242,255,0.62))
+      drop-shadow(0 0 13px rgba(255,255,255,0.30)) !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-fallback {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-fallback .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4061,7 +4110,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g32-safari-glow-mask" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g33-safari-glb-visible" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
