@@ -4479,6 +4479,34 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g47 — SAFARI WEBGL GEOMETRY GLARE / OPTION A
+   Built from v149g46. Safari desktop only.
+
+   Replaces the SVG fallback glow-mask experiment with a true WebGL
+   duplicate-geometry glare layer. The fallback SVG is hidden once the
+   GLB first frame is ready so no second logo can drift out of alignment.
+   Chrome desktop untouched. Mobile untouched.
+   ========================================================= */
+
+@media (min-width: 769px) {
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-fallback {
+    opacity: 0 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+    transform: none !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-model,
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-canvas {
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4514,7 +4542,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g46-safari-soft-glow-no-double-logo" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g47-safari-webgl-geometry-glare" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7836,7 +7864,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const envSrc = holder.getAttribute("data-env-src") || "media/brand/studio_small_09.jpg";
 
   let THREE, GLTFLoader, RGBELoader, DRACOLoader;
-  let renderer, scene, camera, logoGroup, pmremGenerator;
+  let renderer, scene, camera, logoGroup, safariGlareGroup, pmremGenerator;
   let liveEnvScene, liveEnvRig, liveEnvCubeCamera, liveEnvTarget;
   const proofChromeMaterials = [];
   const proofEnvironment = { phase: 0, lastNow: 0 };
@@ -7900,6 +7928,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
       try { child.geometry.computeVertexNormals(); } catch(e) {}
     });
+  }
+
+
+  function createSafariGeometryGlare(sourceGroup) {
+    if (!isSafariDesktop || !sourceGroup || !THREE) return null;
+
+    const glareGroup = sourceGroup.clone(true);
+    glareGroup.name = "paletteknife_safari_geometry_glare";
+    glareGroup.scale.multiplyScalar(1.018);
+    glareGroup.renderOrder = 8;
+
+    const glareMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.105,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: true,
+      toneMapped: false
+    });
+
+    glareGroup.traverse((child) => {
+      if (!child.isMesh) return;
+      child.material = glareMaterial.clone();
+      child.renderOrder = 8;
+      child.frustumCulled = false;
+    });
+
+    return glareGroup;
   }
 
 
@@ -8022,7 +8079,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g29_safari_header_center_align",
+      mode: "v149g47_safari_webgl_geometry_glare",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -8109,6 +8166,9 @@ document.addEventListener('DOMContentLoaded', function () {
       try { dracoLoader.dispose(); } catch(e) {}
       tuneMaterials(logoGroup);
       fitObjectToView(logoGroup);
+
+      safariGlareGroup = createSafariGeometryGlare(logoGroup);
+      if (safariGlareGroup) scene.add(safariGlareGroup);
       scene.add(logoGroup);
       loaded = true;
       setStatus("three_ready_loaded");
@@ -8196,6 +8256,12 @@ document.addEventListener('DOMContentLoaded', function () {
     logoGroup.rotation.x = 0;
     logoGroup.rotation.y = 0;
     logoGroup.rotation.z = 0;
+
+    if (safariGlareGroup) {
+      safariGlareGroup.rotation.x = logoGroup.rotation.x;
+      safariGlareGroup.rotation.y = logoGroup.rotation.y;
+      safariGlareGroup.rotation.z = logoGroup.rotation.z;
+    }
 
     camera.position.x = 0;
     camera.position.y = 0;
