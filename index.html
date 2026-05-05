@@ -4000,13 +4000,12 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g34 — SAFARI WEBGL FORCE VISIBLE DIAGNOSTIC
-   Built from approved v149g31 path.
-   Purpose:
-   - keep Safari size/position
-   - force GLB canvas visible whenever is-webgl-logo-ready is set
-   - expose WebGL fallback reason via data-pk-webgl-status
-   Chrome untouched. Mobile untouched.
+   v149g35 — SAFARI THREE IMPORT FIX
+   Chrome desktop untouched.
+   Safari desktop:
+   - keeps approved v149g31 size/position
+   - uses Safari-safe Three.js import path
+   Mobile untouched.
    ========================================================= */
 
 @media (min-width: 769px) {
@@ -4017,7 +4016,6 @@ body.is-booting #panelDesc {
     transform: translateX(-50%) scale(1.1) !important;
     transform-origin: center top !important;
     z-index: 40 !important;
-    opacity: 1 !important;
   }
 
   html.is-safari-desktop .site-header .header-inner,
@@ -4042,12 +4040,7 @@ body.is-booting #panelDesc {
     object-fit: contain !important;
   }
 
-  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-model,
   html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-canvas {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    background: transparent !important;
     filter:
       drop-shadow(0 0 1.5px rgba(255,255,255,0.95))
       drop-shadow(0 0 5px rgba(235,242,255,0.62))
@@ -4056,19 +4049,6 @@ body.is-booting #panelDesc {
       drop-shadow(0 0 1.5px rgba(255,255,255,0.95))
       drop-shadow(0 0 5px rgba(235,242,255,0.62))
       drop-shadow(0 0 13px rgba(255,255,255,0.30)) !important;
-  }
-
-  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-fallback {
-    opacity: 0 !important;
-    visibility: hidden !important;
-  }
-
-  /* Diagnostic: if Safari falls back, keep SVG visible but remove all glow filters. */
-  html.is-safari-desktop .site-header.is-webgl-logo-fallback .webgl-logo-fallback {
-    opacity: 1 !important;
-    visibility: visible !important;
-    filter: none !important;
-    -webkit-filter: none !important;
   }
 }
 
@@ -4107,7 +4087,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g34-safari-force-webgl-visible" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g35-safari-three-import-fix" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7390,7 +7370,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function fallback(reason) {
-    console.warn("PaletteKnife WebGL fallback:", reason);
     setStatus("fallback_" + reason);
     if (header) {
       header.classList.remove("is-webgl-logo-booting");
@@ -7616,18 +7595,30 @@ document.addEventListener('DOMContentLoaded', function () {
   async function init() {
     setStatus("three_importing");
     try {
-      const modules = await Promise.all([
-        import("https://esm.sh/three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/RGBELoader.js?deps=three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/DRACOLoader.js?deps=three@0.160.0")
-      ]);
+      /*
+        v149g35 Safari import fix:
+        Chrome keeps the approved esm.sh import path.
+        Safari desktop uses unpkg ESM modules because Safari was failing the esm.sh module script import.
+      */
+      const moduleUrls = isSafariDesktop ? [
+        "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
+        "https://unpkg.com/three@0.160.0/examples/jsm/loaders/RGBELoader.js",
+        "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js"
+      ] : [
+        "https://esm.sh/three@0.160.0",
+        "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.160.0",
+        "https://esm.sh/three@0.160.0/examples/jsm/loaders/RGBELoader.js?deps=three@0.160.0",
+        "https://esm.sh/three@0.160.0/examples/jsm/loaders/DRACOLoader.js?deps=three@0.160.0"
+      ];
+
+      const modules = await Promise.all(moduleUrls.map((url) => import(url)));
       THREE = modules[0];
       GLTFLoader = modules[1].GLTFLoader;
       RGBELoader = modules[2].RGBELoader;
       DRACOLoader = modules[3].DRACOLoader;
     } catch (error) {
-      console.warn("PaletteKnife Three.js imports failed", error);
+      console.warn("PaletteKnife Three.js imports failed", error, { isSafariDesktop, moduleUrls });
       fallback("three_import_failed");
       return;
     }
