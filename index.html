@@ -3917,6 +3917,44 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g29 — SAFARI HEADER CENTER ALIGN
+   Built from v149g28.
+   Keeps Safari's approved 209.74px × 61.7px sizing.
+   Fixes Safari-only position drift by pinning the header logo to viewport centre.
+   Chrome desktop untouched. Mobile untouched.
+   ========================================================= */
+
+@media (min-width: 769px) {
+  html.is-safari-desktop .site-header {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    top: 34px !important;
+    transform: translateX(-50%) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    z-index: 40 !important;
+  }
+
+  html.is-safari-desktop .site-header .header-inner,
+  html.is-safari-desktop .site-header .webgl-logo-wrap,
+  html.is-safari-desktop .site-header .webgl-logo-fallback,
+  html.is-safari-desktop .site-header .webgl-logo-model,
+  html.is-safari-desktop .site-header .webgl-logo-canvas {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    justify-self: center !important;
+    align-self: center !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -3952,7 +3990,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g28-safari-chrome-box-lock" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g29-safari-center-align" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7446,7 +7484,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g28_safari_locked_to_chrome_box",
+      mode: "v149g29_safari_header_center_align",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
