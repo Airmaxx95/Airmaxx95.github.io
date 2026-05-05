@@ -43,7 +43,6 @@
 <meta name="twitter:image:alt" content="PaletteKnife brand preview image">
 
 
-<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
 <title>PaletteKnife — Editions & Objects</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -3975,6 +3974,29 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g20 — SAFARI UNIFORM SCALE + MOBILE WEBGL HARD OFF
+   Built from v149g19. Scope only:
+   - Chrome desktop visual path remains untouched.
+   - Safari desktop GLB gets a uniform internal scale boost; no stretch.
+   - Touch/coarse/mobile devices never initialise the GLB renderer.
+   - No glare code.
+   ========================================================= */
+@media (pointer: coarse), (hover: none), (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .site-header .webgl-logo-model,
+  .site-header .webgl-logo-canvas {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .site-header .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4010,7 +4032,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g19-safari-fit" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g20-safari-scale-mobile-hard-off" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7287,9 +7309,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function isTouchOrMobileHeader() {
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const noHover = window.matchMedia && window.matchMedia("(hover: none)").matches;
+    const narrow = window.innerWidth < DESKTOP_MIN_WIDTH;
+    const touchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+    const ua = navigator.userAgent || "";
+    const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+    return !!(coarse || noHover || narrow || touchPoints || mobileUA);
+  }
+
   function canUseWebGL() {
     if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
-    if (window.innerWidth < DESKTOP_MIN_WIDTH) return { ok: false, reason: "viewport_" + window.innerWidth };
+    if (isTouchOrMobileHeader()) return { ok: false, reason: "mobile_touch_hard_disabled" };
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
     try {
       const c = document.createElement("canvas");
@@ -7315,6 +7347,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const capability = canUseWebGL();
   if (!capability.ok) {
+    if (holder && /mobile_touch_hard_disabled|viewport_|reduced_motion/.test(capability.reason || "")) {
+      holder.innerHTML = "";
+      holder.setAttribute("data-webgl-disabled", capability.reason);
+    }
     fallback(capability.reason);
     return;
   }
@@ -7336,7 +7372,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   let loaded = false;
   let firstFrameRendered = false;
-  const isMobileHeaderWebGL = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  const isMobileHeaderWebGL = isTouchOrMobileHeader();
 
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
@@ -7378,7 +7414,8 @@ document.addEventListener('DOMContentLoaded', function () {
     box.getCenter(center);
     object.position.sub(center);
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    object.scale.setScalar(4.65 / maxDim);
+    const safariUniformScaleBoost = isSafariDesktop() ? 1.18 : 1.0;
+    object.scale.setScalar((4.65 * safariUniformScaleBoost) / maxDim);
     const box2 = new THREE.Box3().setFromObject(object);
     const center2 = new THREE.Vector3();
     box2.getCenter(center2);
