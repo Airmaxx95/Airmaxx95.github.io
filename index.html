@@ -4969,6 +4969,164 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g52 — SAFARI EXACT STACK RECOVERY
+   Built on v149g51 after visual no-change diagnosis.
+
+   Diagnosis:
+   - v149g51 wrote projected GLB CSS variables but the final Safari CSS
+     still used fixed pixel declarations, so the pixel-lock had no visible
+     effect.
+   - Separate geometry glare cannot be both exact-size and visibly behind an
+     opaque GLB: if it is exact-size it is covered; if it is larger it drifts.
+
+   Fix:
+   - Safari desktop has ONE header viewport shared by boot SVG and GLB canvas.
+   - Boot SVG fills the same viewport as the canvas immediately.
+   - Ready glare is canvas-alpha based: the shadow is derived from the exact
+     rendered GLB alpha, so size/position cannot diverge from the GLB.
+   - Chrome path untouched; mobile WebGL disable rules remain untouched.
+   ========================================================= */
+@media (min-width: 769px) {
+  html.is-safari-desktop-preload,
+  html.is-safari-desktop {
+    --pk-safari-logo-w: 209.74px;
+    --pk-safari-logo-h: 61.7px;
+    --pk-safari-logo-top: 18px;
+    --pk-safari-logo-scale: 1.10;
+  }
+
+  html.is-safari-desktop-preload .site-header,
+  html.is-safari-desktop .site-header {
+    position: fixed !important;
+    left: 50% !important;
+    top: var(--pk-safari-logo-top) !important;
+    width: var(--pk-safari-logo-w) !important;
+    height: var(--pk-safari-logo-h) !important;
+    min-width: var(--pk-safari-logo-w) !important;
+    min-height: var(--pk-safari-logo-h) !important;
+    max-width: var(--pk-safari-logo-w) !important;
+    max-height: var(--pk-safari-logo-h) !important;
+    transform: translateX(-50%) scale(var(--pk-safari-logo-scale)) !important;
+    transform-origin: center top !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+    display: block !important;
+    animation: none !important;
+    background: transparent !important;
+    contain: none !important;
+  }
+
+  html.is-safari-desktop-preload .site-header .header-inner,
+  html.is-safari-desktop-preload .site-header .webgl-logo-wrap,
+  html.is-safari-desktop .site-header .header-inner,
+  html.is-safari-desktop .site-header .webgl-logo-wrap {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    background: transparent !important;
+    transform: none !important;
+    line-height: 0 !important;
+  }
+
+  html.is-safari-desktop-preload .site-header .webgl-logo-model,
+  html.is-safari-desktop-preload .site-header .webgl-logo-fallback,
+  html.is-safari-desktop .site-header .webgl-logo-model,
+  html.is-safari-desktop .site-header .webgl-logo-fallback {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    background: transparent !important;
+    transform: none !important;
+    line-height: 0 !important;
+    pointer-events: none !important;
+  }
+
+  html.is-safari-desktop-preload .site-header .webgl-logo-canvas,
+  html.is-safari-desktop .site-header .webgl-logo-canvas,
+  html.is-safari-desktop-preload .site-header .logo-svg,
+  html.is-safari-desktop .site-header .logo-svg {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    background: transparent !important;
+    transform: none !important;
+  }
+
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting .webgl-logo-fallback,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting .webgl-logo-fallback,
+  html.is-safari-desktop .site-header.is-webgl-logo-fallback .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 3 !important;
+  }
+
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting .webgl-logo-model,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting .webgl-logo-model,
+  html.is-safari-desktop .site-header.is-webgl-logo-fallback .webgl-logo-model {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    z-index: 1 !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-model {
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 3 !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-canvas {
+    opacity: 1 !important;
+    visibility: visible !important;
+    /* Exact-size glare: derived from the GLB alpha inside this same canvas. */
+    filter:
+      drop-shadow(0 0 1.2px rgba(255,255,255,0.98))
+      drop-shadow(0 0 3.5px rgba(255,255,255,0.72))
+      drop-shadow(0 0 8px rgba(255,255,255,0.38)) !important;
+    -webkit-filter:
+      drop-shadow(0 0 1.2px rgba(255,255,255,0.98))
+      drop-shadow(0 0 3.5px rgba(255,255,255,0.72))
+      drop-shadow(0 0 8px rgba(255,255,255,0.38)) !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-fallback {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    display: none !important;
+    z-index: 1 !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -5004,7 +5162,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g51-pixel-locked-post-fit-glare" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g52-canvas-alpha-glare-exact-stack" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo" loading="eager" decoding="sync" fetchpriority="high"></picture>
@@ -8631,7 +8789,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g51_pixel_locked_svg_post_fit_glare",
+      mode: "v149g52_canvas_alpha_glare_exact_stack",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
@@ -8720,8 +8878,8 @@ document.addEventListener('DOMContentLoaded', function () {
       fitObjectToView(logoGroup);
       syncSafariPixelLockedFallback();
 
-      safariGlareGroup = createSafariGeometryGlare(logoGroup);
-      if (safariGlareGroup) scene.add(safariGlareGroup);
+      /* v149g52: disable separate geometry glare layer; Safari glare is now the canvas alpha drop-shadow itself so it cannot drift or resize independently. */
+      safariGlareGroup = null;
       scene.add(logoGroup);
       loaded = true;
       setStatus("three_ready_loaded");
