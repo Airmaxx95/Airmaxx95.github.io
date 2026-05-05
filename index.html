@@ -3857,53 +3857,63 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g27 — SAFARI DESKTOP GLB SIZE MATCH
-   Built from approved v149g22.
+   v149g28 — SAFARI LOCKED TO CHROME HEADER BOX
+   Chrome reference measured in DevTools:
+   .site-header box = 209.74px × 61.7px
+
    Chrome desktop untouched.
+   Safari desktop only gets hard px geometry.
    Mobile untouched for later.
-   Safari desktop only: increase GLB visual footprint to match SVG scale.
    ========================================================= */
 
 @media (min-width: 769px) {
-  html.is-safari-desktop .site-header .webgl-logo-wrap {
-    width: 13.6em !important;
-    height: 4.25em !important;
-    max-width: none !important;
+  html.is-safari-desktop .site-header {
+    width: 209.74px !important;
+    height: 61.7px !important;
+    min-width: 209.74px !important;
+    min-height: 61.7px !important;
+    max-width: 209.74px !important;
+    max-height: 61.7px !important;
     display: grid !important;
     place-items: center !important;
-    overflow: visible !important;
-  }
-
-  html.is-safari-desktop .site-header .webgl-logo-fallback {
-    grid-area: 1 / 1 !important;
-    width: 13.6em !important;
-    height: 4.25em !important;
-    display: grid !important;
-    place-items: center !important;
-    overflow: visible !important;
-  }
-
-  html.is-safari-desktop .site-header .logo-svg {
-    height: 3.55em !important;
-    width: auto !important;
-    max-width: none !important;
-    object-fit: contain !important;
-  }
-
-  html.is-safari-desktop .site-header .webgl-logo-model {
-    grid-area: 1 / 1 !important;
-    width: 13.6em !important;
-    height: 4.25em !important;
-    max-width: none !important;
-    aspect-ratio: 13.6 / 4.25 !important;
     overflow: visible !important;
     transform: none !important;
   }
 
+  html.is-safari-desktop .site-header .header-inner,
+  html.is-safari-desktop .site-header .webgl-logo-wrap,
+  html.is-safari-desktop .site-header .webgl-logo-fallback,
+  html.is-safari-desktop .site-header .webgl-logo-model {
+    width: 209.74px !important;
+    height: 61.7px !important;
+    min-width: 209.74px !important;
+    min-height: 61.7px !important;
+    max-width: 209.74px !important;
+    max-height: 61.7px !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: visible !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  html.is-safari-desktop .site-header .logo-svg {
+    height: 61.7px !important;
+    width: auto !important;
+    max-width: 209.74px !important;
+    max-height: 61.7px !important;
+    object-fit: contain !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+
   html.is-safari-desktop .site-header .webgl-logo-canvas {
-    width: 100% !important;
-    height: 100% !important;
+    width: 209.74px !important;
+    height: 61.7px !important;
     display: block !important;
+    transform: none !important;
+    margin: 0 !important;
   }
 }
 
@@ -3942,7 +3952,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g27-safari-desktop-size-match" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g28-safari-chrome-box-lock" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7273,7 +7283,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.5 : 1.8));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isSafariDesktop ? 1.8 : (window.innerWidth <= 768 ? 2.5 : 1.8)));
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -7287,7 +7297,7 @@ document.addEventListener('DOMContentLoaded', function () {
     box.getCenter(center);
     object.position.sub(center);
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    object.scale.setScalar((isSafariDesktop ? 5.35 : 4.65) / maxDim);
+    object.scale.setScalar((isSafariDesktop ? 4.65 : 4.65) / maxDim);
     const box2 = new THREE.Box3().setFromObject(object);
     const center2 = new THREE.Vector3();
     box2.getCenter(center2);
@@ -7436,7 +7446,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g27_safari_desktop_glb_size_match",
+      mode: "v149g28_safari_locked_to_chrome_box",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
