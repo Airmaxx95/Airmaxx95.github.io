@@ -45,6 +45,15 @@
 
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
+<script>
+(function(){
+  try {
+    var isSafariDesktop = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(navigator.userAgent) && window.matchMedia && window.matchMedia("(min-width: 769px)").matches;
+    if (isSafariDesktop) document.documentElement.classList.add("is-safari-desktop-preload");
+  } catch(e) {}
+})();
+</script>
+
 <title>PaletteKnife — Editions & Objects</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
@@ -4507,6 +4516,82 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g48 — SAFARI INSTANT SVG + STRONG WEBGL GLARE RECOVERY
+   Built from v149g47 after failed visual approval. Safari desktop only.
+
+   Fixes:
+   - Safari SVG/WebP fallback is visible immediately while GLB imports/loads.
+   - GLB first frame still replaces fallback cleanly.
+   - Geometry glare is strengthened in WebGL instead of relying on SVG mask drift.
+   Chrome desktop untouched. Mobile untouched.
+   ========================================================= */
+
+@media (min-width: 769px) {
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting {
+    visibility: visible !important;
+    opacity: 1 !important;
+    animation: none !important;
+    transform: translateX(-50%) translateY(0) !important;
+  }
+
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting .webgl-logo-wrap,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting .webgl-logo-wrap {
+    display: grid !important;
+    place-items: center !important;
+    width: 209.74px !important;
+    height: 61.7px !important;
+    overflow: visible !important;
+    isolation: isolate !important;
+  }
+
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting .webgl-logo-fallback,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting .webgl-logo-fallback {
+    grid-area: 1 / 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: grid !important;
+    place-items: center !important;
+    pointer-events: none !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting .webgl-logo-model,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting .webgl-logo-model {
+    grid-area: 1 / 1 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  html.is-safari-desktop-preload .site-header.is-webgl-logo-booting .logo-svg,
+  html.is-safari-desktop .site-header.is-webgl-logo-booting .logo-svg {
+    height: 61.7px !important;
+    width: auto !important;
+    max-width: 209.74px !important;
+    opacity: 1 !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-model,
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-canvas {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  html.is-safari-desktop .site-header.is-webgl-logo-ready .webgl-logo-fallback {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4542,10 +4627,10 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g47-safari-webgl-geometry-glare" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g48-safari-instant-svg-strong-webgl-glare" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
-<picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
+<picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo" loading="eager" decoding="sync" fetchpriority="high"></picture>
     </div>
   </div>
 </header>
@@ -7934,29 +8019,65 @@ document.addEventListener('DOMContentLoaded', function () {
   function createSafariGeometryGlare(sourceGroup) {
     if (!isSafariDesktop || !sourceGroup || !THREE) return null;
 
-    const glareGroup = sourceGroup.clone(true);
-    glareGroup.name = "paletteknife_safari_geometry_glare";
-    glareGroup.scale.multiplyScalar(1.018);
-    glareGroup.renderOrder = 8;
+    /*
+      v149g48:
+      The v149g47 Option A mesh existed but was too faint and depth-tested,
+      so the chrome body swallowed it. This creates a small WebGL glare rig
+      from the exact same GLB geometry: a larger backside halo behind the
+      chrome plus a very light additive face glint. No SVG mask is used.
+    */
+    const glareRig = new THREE.Group();
+    glareRig.name = "paletteknife_safari_geometry_glare_rig";
 
-    const glareMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+    const haloGroup = sourceGroup.clone(true);
+    haloGroup.name = "paletteknife_safari_geometry_halo";
+    haloGroup.scale.multiplyScalar(1.052);
+    haloGroup.renderOrder = -2;
+
+    const haloMaterial = new THREE.MeshBasicMaterial({
+      color: 0xf6fbff,
       transparent: true,
-      opacity: 0.105,
+      opacity: 0.34,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
-      depthTest: true,
+      depthTest: false,
+      side: THREE.BackSide,
       toneMapped: false
     });
 
-    glareGroup.traverse((child) => {
+    haloGroup.traverse((child) => {
       if (!child.isMesh) return;
-      child.material = glareMaterial.clone();
-      child.renderOrder = 8;
+      child.material = haloMaterial.clone();
+      child.renderOrder = -2;
       child.frustumCulled = false;
     });
 
-    return glareGroup;
+    const glintGroup = sourceGroup.clone(true);
+    glintGroup.name = "paletteknife_safari_geometry_face_glint";
+    glintGroup.scale.multiplyScalar(1.010);
+    glintGroup.renderOrder = 12;
+
+    const glintMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.115,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.FrontSide,
+      toneMapped: false
+    });
+
+    glintGroup.traverse((child) => {
+      if (!child.isMesh) return;
+      child.material = glintMaterial.clone();
+      child.renderOrder = 12;
+      child.frustumCulled = false;
+    });
+
+    glareRig.add(haloGroup);
+    glareRig.add(glintGroup);
+    return glareRig;
   }
 
 
@@ -8079,7 +8200,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scene.environment = liveEnvTarget.texture;
 
     window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g47_safari_webgl_geometry_glare",
+      mode: "v149g48_safari_instant_svg_strong_webgl_glare",
       reflectionChildren: liveEnvRig.children.length,
       status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
     };
