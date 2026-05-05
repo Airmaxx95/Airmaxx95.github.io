@@ -3911,6 +3911,70 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g19 — SAFARI GLB FIT + MOBILE GLB FULL DISABLE
+   Built from v149g16 recovery path.
+   Scope only:
+   - Chrome desktop remains the completed reference.
+   - Safari desktop GLB viewport is locked to the SVG fallback box.
+   - Mobile GLB/WebGL header is fully disabled to rule out throttling.
+   - No glare code.
+   ========================================================= */
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .site-header .webgl-logo-model,
+  .site-header .webgl-logo-canvas {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .site-header .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* Safari-only: avoid Safari grid/stretch interpretation by taking GLB out of layout
+   and pinning it to the exact SVG/WebP fallback footprint. */
+@supports (-webkit-hyphens: none) and (not (-moz-appearance: none)) {
+  @media (min-width: 901px) {
+    .site-header .webgl-logo-wrap {
+      position: relative !important;
+      display: inline-block !important;
+      width: max-content !important;
+      height: auto !important;
+      line-height: 0 !important;
+      overflow: visible !important;
+    }
+    .site-header .webgl-logo-fallback {
+      position: relative !important;
+      display: block !important;
+      width: max-content !important;
+      height: auto !important;
+      line-height: 0 !important;
+      z-index: 2 !important;
+    }
+    .site-header .webgl-logo-model {
+      position: absolute !important;
+      left: 50% !important;
+      top: 50% !important;
+      width: var(--pk-safari-logo-w, 100%) !important;
+      height: var(--pk-safari-logo-h, 3em) !important;
+      max-width: none !important;
+      aspect-ratio: auto !important;
+      transform: translate(-50%, -50%) !important;
+      overflow: visible !important;
+      z-index: 3 !important;
+    }
+    .site-header .webgl-logo-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+    }
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -3946,7 +4010,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g16-mobile-hires" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g19-safari-fit" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -7204,7 +7268,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script type="module">
 (function () {
-  const DESKTOP_MIN_WIDTH = 0;
+  const DESKTOP_MIN_WIDTH = 901;
   const header = document.getElementById("siteHeader");
   const holder = document.getElementById("webglLogoModel");
   const canvas = document.getElementById("webglLogoCanvas");
@@ -7232,6 +7296,20 @@ document.addEventListener('DOMContentLoaded', function () {
       return !!(c.getContext("webgl2") || c.getContext("webgl") || c.getContext("experimental-webgl")) ? { ok: true } : { ok: false, reason: "no_webgl_context" };
     } catch (e) {
       return { ok: false, reason: "webgl_error" };
+    }
+  }
+
+
+  if (header) {
+    const fallbackImg = header.querySelector(".webgl-logo-fallback img");
+    if (fallbackImg) {
+      if (fallbackImg.complete) {
+        window.requestAnimationFrame(lockSafariHolderToFallback);
+      } else {
+        fallbackImg.addEventListener("load", function () {
+          window.requestAnimationFrame(lockSafariHolderToFallback);
+        }, { once: true });
+      }
     }
   }
 
@@ -7263,8 +7341,26 @@ document.addEventListener('DOMContentLoaded', function () {
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
 
+  function isSafariDesktop() {
+    const ua = navigator.userAgent || "";
+    const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+    return isSafari && window.innerWidth >= DESKTOP_MIN_WIDTH;
+  }
+
+  function lockSafariHolderToFallback() {
+    if (!isSafariDesktop() || !header || !holder) return;
+    const fallbackImg = header.querySelector(".webgl-logo-fallback img");
+    if (!fallbackImg) return;
+    const rect = fallbackImg.getBoundingClientRect();
+    if (rect.width > 2 && rect.height > 2) {
+      holder.style.setProperty("--pk-safari-logo-w", rect.width.toFixed(2) + "px");
+      holder.style.setProperty("--pk-safari-logo-h", rect.height.toFixed(2) + "px");
+    }
+  }
+
   function updateHolderSize() {
     if (!holder || !renderer || !camera) return;
+    lockSafariHolderToFallback();
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
@@ -7329,7 +7425,7 @@ document.addEventListener('DOMContentLoaded', function () {
       liveEnvTarget = null;
       scene.environment = null;
       window.PALETTEKNIFE_CHROME_DEBUG = {
-        mode: "v149g18_mobile_lightbars_disabled",
+        mode: "v149g19_mobile_glb_disabled",
         reflectionChildren: 0,
         status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
       };
