@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g53 cart/nav button style update
+Source: v149g52_mobile_burst_scroll_defer_center_updates
+Change:
+- Cart button background transparent
+- Nav/Collection button background transparent
+- font-size 28px
+- color black
+All devices.
+-->
+<!--
 PaletteKnife v149g52 mobile burst-scroll defer centered updates
 Source: v149g48_mobile_nav_reverse_settle_fix
 Change: mobile rapid manual scroll defers intermediate centered-slide side effects until settled
@@ -575,12 +585,12 @@ Change: title DOM/text/opacity writes are cached to avoid per-frame fixed overla
     z-index: 2;
     appearance: none;
     border: none;
-    background: rgba(0,0,0,0.88);
-    color: #fff;
+    background: transparent;
+    background: transparent;
     border-radius: 999px;
     min-height: 28px;
     padding: 0 16px;
-    font-size: 13px;
+    background: transparent;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -688,12 +698,12 @@ Change: title DOM/text/opacity writes are cached to avoid per-frame fixed overla
     z-index: 110;
     appearance: none;
     border: none;
-    background: rgba(0,0,0,0.88);
-    color: #fff;
+    background: transparent;
+    background: transparent;
     border-radius: 999px;
     min-height: 28px;
     padding: 0 16px;
-    font-size: 13px;
+    background: transparent;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -4054,6 +4064,17 @@ body.is-booting #panelDesc {
   .site-header.is-webgl-logo-fallback .webgl-logo-fallback {
     opacity: 1 !important;
   }
+}
+
+
+/* =========================================================
+   v149g53 CART / NAV BUTTON STYLE OVERRIDE
+   ========================================================= */
+.nav-panel-toggle,
+.cart-toggle {
+  background: transparent !important;
+  font-size: 28px !important;
+  color: black !important;
 }
 
 </style>
