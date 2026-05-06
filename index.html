@@ -42,9 +42,6 @@
 <meta name="twitter:image" content="https://paletteknife.uk/media/brand/og-image.jpg">
 <meta name="twitter:image:alt" content="PaletteKnife brand preview image">
 
-
-<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
-
 <title>PaletteKnife — Editions & Objects</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
@@ -1438,7 +1435,7 @@
 
 .logo-svg {
     display: block;
-    height: 3em;
+    height: 2em;
     width: auto;
     max-width: 100%;
   }
@@ -1551,7 +1548,7 @@
   }
 
   .logo-svg {
-    height: 3.3em !important;
+    height: 1.3em !important;
   }
 
   .nav-panel {
@@ -1768,7 +1765,7 @@
   }
 
   .logo-svg {
-    height: 2.18em !important;
+    height: 1.18em !important;
   }
 
   .slide-title-display {
@@ -1835,7 +1832,7 @@
   }
 
   .logo-svg {
-    height: 3.6em !important;
+    height: 2.6em !important;
   }
 
   /* Larger slides now that left meta is no longer floating separately */
@@ -2015,7 +2012,7 @@
   }
 
   .logo-svg {
-    height: 3.3em !important;
+    height: 2.3em !important;
   }
 
   .slide-title-display {
@@ -3545,58 +3542,6 @@ body.is-booting #panelDesc {
   }
 }
 
-
-/* =========================================================
-   v147e WEBGL CHROME HEADER LOGO — listener-first GLB load fix
-   Desktop-only GLB render, zero layout shift. Existing SVG/WebP remains fallback.
-   ========================================================= */
-.webgl-logo-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-  pointer-events: none;
-  transform-origin: center center;
-}
-.webgl-logo-model {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: clamp(320px, 33vw, 640px);
-  height: clamp(108px, 11vw, 186px);
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: transparent;
-  transition: opacity 360ms ease;
-}
-
-.webgl-logo-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-}
-.webgl-logo-fallback {
-  position: relative;
-  z-index: 2;
-  display: block;
-  transition: opacity 240ms ease;
-  transform-origin: center center;
-}
-.site-header.is-webgl-logo-ready .webgl-logo-model { opacity: 1; filter: contrast(1.16) brightness(1.10) saturate(0.86); }
-.site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 0; }
-.site-header.is-webgl-logo-fallback .webgl-logo-fallback { opacity: 1; }
-.site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
-.site-header.is-webgl-logo-booting .webgl-logo-fallback { opacity: 1; }
-
-@media (max-width: 900px), (prefers-reduced-motion: reduce) {
-  .webgl-logo-model { display: none !important; }
-  .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
-}
-
 </style>
 
 <script type="application/ld+json">
@@ -3629,14 +3574,9 @@ body.is-booting #panelDesc {
 </head>
 <body class="is-booting">
 
-<header class="site-header is-webgl-logo-booting" id="siteHeader">
+<header class="site-header">
   <div class="header-inner">
-    <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g6-micro-contrast-polish" data-env-src="media/brand/studio_small_09.jpg">
-        <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
-      </div>
-<picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
-    </div>
+    <div class="logo"><picture><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture></div>
   </div>
 </header>
 
@@ -3904,43 +3844,6 @@ body.is-booting #panelDesc {
     }, params || {});
     window.gtag("event", safeName, payload);
   }
-
-  let lastTrackedViewItemKey = null;
-
-  function buildAnalyticsItemPayload(product, index, extraParams) {
-    if (!product) return Object.assign({ index: Number(index || 0) }, extraParams || {});
-    const payload = {
-      item_id: String(product.id || ""),
-      item_name: String(product.title || ""),
-      item_category: String(product.productType || product.type || ""),
-      item_variant: String(product.variantMode || ""),
-      sale_state: String(product.saleState || ""),
-      index: Number(index || 0)
-    };
-    return Object.assign(payload, extraParams || {});
-  }
-
-  function trackViewItem(product, index, source) {
-    if (!product) return;
-    const viewKey = [String(product.id || ""), Number(index || 0), String(source || "active_item")].join("::");
-    if (viewKey === lastTrackedViewItemKey) return;
-    lastTrackedViewItemKey = viewKey;
-    trackAnalyticsEvent("view_item", buildAnalyticsItemPayload(product, index, {
-      source: String(source || "active_item")
-    }));
-  }
-
-  function normalizeTrackedHref(value) {
-    try {
-      const url = new URL(value, window.location.origin);
-      url.hash = "";
-      return url.href.replace(/\/$/, "").toLowerCase();
-    } catch (error) {
-      return String(value || "").trim().replace(/\/$/, "").toLowerCase();
-    }
-  }
-
-  const INSTAGRAM_TRACK_URL = normalizeTrackedHref("https://www.instagram.com/paletteknife.uk/");
 
   function normalizeOptionKey(value) {
     return String(value || "").trim().toLowerCase();
@@ -6115,7 +6018,6 @@ body.is-booting #panelDesc {
       renderPanel(currentCenteredIndex);
 
       const currentProduct = PRODUCTS[currentCenteredIndex];
-      trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
       const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
       if (navPanel && navPanel.classList.contains("is-open")) {
         if (hideNavForCurrent) {
@@ -6206,9 +6108,6 @@ body.is-booting #panelDesc {
     }
 
     renderAll();
-    try {
-      window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
-    } catch (error) {}
 
     if (
       introActive ||
@@ -6512,7 +6411,6 @@ body.is-booting #panelDesc {
       currentCenteredIndex = 0;
       setPanelValidationMessage("");
       renderPanel(0, { immediate: true });
-      trackViewItem(PRODUCTS[0], 0, "initial_load");
       loadingState.classList.add("hidden");
       introStart = performance.now();
       introActive = true;
@@ -6709,20 +6607,6 @@ body.is-booting #panelDesc {
     });
   }
 
-  document.addEventListener("click", (event) => {
-    const link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
-    if (!link) return;
-    const normalizedHref = normalizeTrackedHref(link.getAttribute("href") || link.href || "");
-    if (!normalizedHref) return;
-    if (normalizedHref === INSTAGRAM_TRACK_URL || normalizedHref.indexOf("instagram.com/paletteknife.uk") !== -1) {
-      trackAnalyticsEvent("instagram_outbound_click", {
-        destination: link.href || "",
-        link_text: String((link.textContent || "").trim()).slice(0, 120),
-        source: "outbound_link"
-      });
-    }
-  });
-
   // HEADER CLICK -> RESET TO FIRST SLIDE
   const headerEl = document.querySelector('.site-header');
   if (headerEl) {
@@ -6885,439 +6769,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var el = document.getElementById('footerYear');
   if (el) el.textContent = '© ' + new Date().getFullYear();
 });
-</script>
-
-
-<script type="module">
-(function () {
-  const DESKTOP_MIN_WIDTH = 0;
-  const header = document.getElementById("siteHeader");
-  const holder = document.getElementById("webglLogoModel");
-  const canvas = document.getElementById("webglLogoCanvas");
-  window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "three_not_started";
-
-  function setStatus(value) {
-    window.PALETTEKNIFE_WEBGL_LOGO_STATUS = value;
-  }
-
-  function fallback(reason) {
-    setStatus("fallback_" + reason);
-    if (header) {
-      header.classList.remove("is-webgl-logo-booting");
-      header.classList.remove("is-webgl-logo-ready");
-      header.classList.add("is-webgl-logo-fallback");
-    }
-  }
-
-  function canUseWebGL() {
-    if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
-    if (window.innerWidth < DESKTOP_MIN_WIDTH) return { ok: false, reason: "viewport_" + window.innerWidth };
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
-    try {
-      const c = document.createElement("canvas");
-      return !!(c.getContext("webgl2") || c.getContext("webgl") || c.getContext("experimental-webgl")) ? { ok: true } : { ok: false, reason: "no_webgl_context" };
-    } catch (e) {
-      return { ok: false, reason: "webgl_error" };
-    }
-  }
-
-  const capability = canUseWebGL();
-  if (!capability.ok) {
-    fallback(capability.reason);
-    return;
-  }
-
-  const glbSrc = holder.getAttribute("data-glb-src") || "media/brand/paletteknife_logo.glb?v=147o";
-  const envSrc = holder.getAttribute("data-env-src") || "media/brand/studio_small_09.jpg";
-
-  let THREE, GLTFLoader, RGBELoader, DRACOLoader;
-  let renderer, scene, camera, logoGroup, pmremGenerator;
-  let liveEnvScene, liveEnvRig, liveEnvCubeCamera, liveEnvTarget;
-  const proofChromeMaterials = [];
-  const proofEnvironment = { phase: 0, lastNow: 0 };
-
-  const liveEnvironmentMotion = {
-    phase: 0,
-    velocity: 0,
-    lastNow: 0,
-    clockPhase: 0
-  };
-  let loaded = false;
-  let firstFrameRendered = false;
-
-  const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
-  const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
-
-  function updateHolderSize() {
-    if (!holder || !renderer || !camera) return;
-    const rect = holder.getBoundingClientRect();
-    const w = Math.max(2, Math.floor(rect.width));
-    const h = Math.max(2, Math.floor(rect.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 1.35 : 1.8));
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  }
-
-  function fitObjectToView(object) {
-    const box = new THREE.Box3().setFromObject(object);
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-    object.position.sub(center);
-    const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    object.scale.setScalar(2.55 / maxDim);
-    const box2 = new THREE.Box3().setFromObject(object);
-    const center2 = new THREE.Vector3();
-    box2.getCenter(center2);
-    object.position.sub(center2);
-    object.position.y -= 0.02;
-  }
-
-  function tuneMaterials(object) {
-    proofChromeMaterials.length = 0;
-
-    object.traverse((child) => {
-      if (!child.isMesh || !child.geometry) return;
-
-      const materials = Array.isArray(child.material) ? child.material : [child.material];
-
-      materials.forEach((mat) => {
-        if ("metalness" in mat) mat.metalness = 1.0;
-        if ("roughness" in mat) mat.roughness = 0.018;
-        if ("color" in mat) mat.color = new THREE.Color(0xf6f7f8);
-        mat.envMapIntensity = 6.0;
-        mat.needsUpdate = true;
-        proofChromeMaterials.push(mat);
-      });
-
-      try { child.geometry.computeVertexNormals(); } catch(e) {}
-    });
-  }
-
-
-  function makeFallbackEnvironment() {
-    /*
-      v149g5 balanced tonal orbit bands:
-      Hidden CubeCamera reflection world only.
-      Static GLB + static camera preserved.
-
-      Fix from v149g4:
-      - darkest bands are thinner and less frequent
-      - no large black fields dominating the chrome
-      - more silver / grey / cool-white return values
-      - still enough dark cuts to read bevels
-    */
-    liveEnvScene = new THREE.Scene();
-
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(5, 96, 48),
-      new THREE.MeshBasicMaterial({ side: THREE.BackSide, color: 0x17181c })
-    );
-    liveEnvScene.add(sphere);
-
-    liveEnvRig = new THREE.Group();
-    liveEnvScene.add(liveEnvRig);
-
-    function addWall(name, angleDeg, radius, opacityBias, xBias) {
-      const wall = new THREE.Group();
-      wall.name = name;
-      const a = THREE.MathUtils.degToRad(angleDeg);
-      wall.position.set(Math.sin(a) * radius + (xBias || 0), 0, Math.cos(a) * radius);
-      wall.rotation.y = a + Math.PI;
-      liveEnvRig.add(wall);
-
-      function band(label, y, width, height, color, opacity, xOffset) {
-        const mat = new THREE.MeshBasicMaterial({
-          color: color,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: Math.max(0.05, Math.min(1, opacity * opacityBias)),
-          depthWrite: false
-        });
-        const strip = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
-        strip.name = name + "_" + label;
-        strip.position.set(xOffset || 0, y, 0);
-        wall.add(strip);
-      }
-
-      return band;
-    }
-
-    const key = addWall("balanced_key_wall", 214, 3.95, 1.00, 0.55);
-    key("hot_white_key", 1.36, 20.5, 0.145, 0xffffff, 1.00, -0.8);
-    key("thin_cool_white", 0.92, 17.5, 0.06, 0xdfe9ff, 0.78, 0.75);
-    key("thin_black_cut", 0.30, 20.0, 0.085, 0x000000, 0.72, 0.15);
-    key("silver_body", -0.10, 20.5, 0.24, 0xaeb3bf, 0.62, -0.25);
-    key("mid_silver_step", -0.56, 18.0, 0.16, 0x777b86, 0.52, -0.5);
-    key("lower_white_edge", -1.04, 16.5, 0.065, 0xffffff, 0.78, 1.05);
-
-    const contrast = addWall("controlled_contrast_wall", 318, 3.75, 0.82, -0.35);
-    contrast("cool_white_rim", 1.02, 17.0, 0.10, 0xf0f4ff, 0.80, 0.4);
-    contrast("charcoal_thin_cut", 0.42, 19.0, 0.105, 0x111216, 0.56, -0.4);
-    contrast("cool_grey_band", -0.10, 19.5, 0.22, 0x7f8796, 0.58, -1.0);
-    contrast("pale_silver_return", -0.72, 17.0, 0.12, 0xc9ced8, 0.52, 0.8);
-    contrast("low_dark_line", -1.28, 18.0, 0.10, 0x050505, 0.44, 0.3);
-
-    const ret = addWall("soft_return_wall", 76, 4.10, 0.72, 0.15);
-    ret("soft_white_return", 1.18, 18.0, 0.10, 0xf4f4f0, 0.72, -0.6);
-    ret("silver_mid_return", 0.30, 19.0, 0.24, 0x9fa4ad, 0.52, 0.7);
-    ret("dim_blue_return", -0.72, 16.0, 0.12, 0x9ca5b9, 0.44, -0.1);
-    ret("small_dark_separator", -1.18, 15.0, 0.07, 0x17181c, 0.34, 0.5);
-
-    const bright = addWall("bright_return_wall", 148, 3.85, 0.58, -0.10);
-    bright("broad_soft_white", 0.98, 17.5, 0.16, 0xffffff, 0.54, 0.2);
-    bright("soft_warm_silver", 0.22, 18.5, 0.20, 0xc8c2b8, 0.40, -0.4);
-    bright("thin_shadow_line", -0.48, 16.5, 0.055, 0x202126, 0.28, 0.9);
-    bright("lower_cool_edge", -1.08, 14.5, 0.08, 0xdfe9ff, 0.38, -0.7);
-
-    /*
-      Restrained fills to lift the overall environment so the logo does not sit black.
-    */
-    const overhead = new THREE.Mesh(
-      new THREE.PlaneGeometry(18, 2.0),
-      new THREE.MeshBasicMaterial({
-        color: 0xd4d8e2,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.16,
-        depthWrite: false
-      })
-    );
-    overhead.position.set(0, 3.15, 0);
-    overhead.rotation.x = Math.PI / 2;
-    liveEnvRig.add(overhead);
-
-    const floorFill = new THREE.Mesh(
-      new THREE.PlaneGeometry(18, 1.8),
-      new THREE.MeshBasicMaterial({
-        color: 0x5e626b,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.12,
-        depthWrite: false
-      })
-    );
-    floorFill.position.set(0, -2.85, 0);
-    floorFill.rotation.x = Math.PI / 2;
-    liveEnvRig.add(floorFill);
-
-    liveEnvTarget = new THREE.WebGLCubeRenderTarget(512, {
-      type: THREE.UnsignedByteType,
-      generateMipmaps: true,
-      minFilter: THREE.LinearMipmapLinearFilter
-    });
-
-    liveEnvCubeCamera = new THREE.CubeCamera(0.1, 10, liveEnvTarget);
-    liveEnvCubeCamera.position.set(0, 0, 0);
-    liveEnvScene.add(liveEnvCubeCamera);
-
-    scene.environment = liveEnvTarget.texture;
-
-    window.PALETTEKNIFE_CHROME_DEBUG = {
-      mode: "v149g6_micro_contrast_polish_bevel_readability",
-      reflectionChildren: liveEnvRig.children.length,
-      status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
-    };
-  }
-
-
-  async function init() {
-    setStatus("three_importing");
-    try {
-      const modules = await Promise.all([
-        import("https://esm.sh/three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/RGBELoader.js?deps=three@0.160.0"),
-        import("https://esm.sh/three@0.160.0/examples/jsm/loaders/DRACOLoader.js?deps=three@0.160.0")
-      ]);
-      THREE = modules[0];
-      GLTFLoader = modules[1].GLTFLoader;
-      RGBELoader = modules[2].RGBELoader;
-      DRACOLoader = modules[3].DRACOLoader;
-    } catch (error) {
-      console.warn("PaletteKnife Three.js imports failed", error);
-      fallback("three_import_failed");
-      return;
-    }
-
-    try {
-      setStatus("three_initialising");
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance", premultipliedAlpha: true });
-      renderer.setClearColor(0x000000, 0);
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.7;
-
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(24, 1, 0.01, 100);
-      camera.position.set(0, 0, 4.8);
-      pmremGenerator = new THREE.PMREMGenerator(renderer);
-      pmremGenerator.compileEquirectangularShader();
-      updateHolderSize();
-
-      const ambient = new THREE.AmbientLight(0xffffff, 0.16);
-      scene.add(ambient);
-      const key = new THREE.DirectionalLight(0xffffff, 1.1);
-      key.position.set(2.3, 2.7, 3.8);
-      scene.add(key);
-      const rim = new THREE.DirectionalLight(0xffffff, 2.2);
-      rim.position.set(-3.1, 1.3, 2.2);
-      scene.add(rim);
-
-      setStatus("loading_live_cube_environment");
-      makeFallbackEnvironment();
-      if (liveEnvCubeCamera && liveEnvScene) {
-        liveEnvCubeCamera.update(renderer, liveEnvScene);
-      }
-      setStatus("live_cube_environment_loaded");
-
-      setStatus("loading_glb_draco");
-      const dracoLoader = new DRACOLoader();
-      dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
-      dracoLoader.setDecoderConfig({ type: "js" });
-
-      const gltfLoader = new GLTFLoader();
-      gltfLoader.setDRACOLoader(dracoLoader);
-
-      const gltf = await gltfLoader.loadAsync(glbSrc);
-      logoGroup = gltf.scene;
-      try { dracoLoader.dispose(); } catch(e) {}
-      tuneMaterials(logoGroup);
-      fitObjectToView(logoGroup);
-      scene.add(logoGroup);
-      loaded = true;
-      setStatus("three_ready_loaded");
-
-      window.addEventListener("resize", updateHolderSize, { passive: true });
-      animate(performance.now());
-    } catch (error) {
-      console.warn("PaletteKnife Three.js DRACO GLB renderer failed", error);
-      fallback("three_renderer_failed");
-    }
-  }
-
-  window.addEventListener("paletteknife:zaxis", function (event) {
-    if (!event.detail) return;
-    const nextPosition = Number(event.detail.position || 0);
-    const rawVelocity = Number(event.detail.velocity || 0) + Number(event.detail.targetVelocity || 0);
-    zaxis.position = nextPosition;
-    zaxis.velocity = Number(event.detail.velocity || 0);
-    zaxis.targetVelocity = Number(event.detail.targetVelocity || 0);
-    const delta = Math.abs(nextPosition - reactive.lastPosition);
-    reactive.lastPosition = nextPosition;
-    reactive.velocityMemory = reactive.velocityMemory * 0.80 + rawVelocity * 0.20;
-    reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.42, delta * 0.013));
-  }, { passive: true });
-
-  window.addEventListener("wheel", function (event) {
-    reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.30, Math.abs(event.deltaY) * 0.0020));
-    reactive.syntheticPhase += event.deltaY * 0.00115;
-    reactive.velocityMemory = reactive.velocityMemory * 0.84 + event.deltaY * 0.016;
-  }, { passive: true });
-
-  let touchY = null;
-  window.addEventListener("touchstart", function (event) {
-    if (event.touches && event.touches.length) touchY = event.touches[0].clientY;
-  }, { passive: true });
-
-  window.addEventListener("touchmove", function (event) {
-    if (!event.touches || !event.touches.length || touchY === null) return;
-    const y = event.touches[0].clientY;
-    const dy = touchY - y;
-    touchY = y;
-    reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.26, Math.abs(dy) * 0.0065));
-    reactive.syntheticPhase += dy * 0.0035;
-    reactive.velocityMemory = reactive.velocityMemory * 0.86 + dy * 0.052;
-  }, { passive: true });
-
-  function animate(now) {
-    requestAnimationFrame(animate);
-    if (!renderer || !scene || !camera || !logoGroup) return;
-
-    reactive.scrollEnergy *= 0.925;
-    reactive.velocityMemory *= 0.91;
-
-    const t = now / 1000;
-    const velocityPulse = Math.min(1.45, Math.abs(zaxis.velocity + zaxis.targetVelocity + reactive.velocityMemory) / 10);
-    const energy = Math.min(1.45, Math.max(velocityPulse, reactive.scrollEnergy));
-    const phase = zaxis.position * 0.00285 + reactive.syntheticPhase + reactive.velocityMemory * 0.0015;
-    const momentum = Math.tanh(reactive.velocityMemory * 0.034);
-
-                                /*
-      v149g2 tonal studio environment motion:
-      - GLB geometry stays static
-      - camera stays static
-      - hidden tonal studio environment loops on Y axis
-      - z-axis scroll speeds up or reverses the Y-axis loop
-      - no X drift, no per-bar animation, no random fragments
-    */
-    const dt = liveEnvironmentMotion.lastNow
-      ? Math.min(0.05, Math.max(0.001, (now - liveEnvironmentMotion.lastNow) / 1000))
-      : 0.016;
-    liveEnvironmentMotion.lastNow = now;
-
-    const scrollDrive = zaxis.velocity + zaxis.targetVelocity + reactive.velocityMemory;
-
-    const idleSpeed = 0.064;
-    const scrubSpeed = THREE.MathUtils.clamp(scrollDrive * 0.036, -3.15, 3.15);
-    const targetVelocity = idleSpeed + scrubSpeed;
-    const smoothing = Math.abs(scrollDrive) > 0.08 ? 0.24 : 0.032;
-
-    liveEnvironmentMotion.velocity += (targetVelocity - liveEnvironmentMotion.velocity) * smoothing;
-    liveEnvironmentMotion.phase += liveEnvironmentMotion.velocity * dt;
-
-    const p = liveEnvironmentMotion.phase;
-
-    logoGroup.rotation.x = 0;
-    logoGroup.rotation.y = 0;
-    logoGroup.rotation.z = 0;
-
-    camera.position.x = 0;
-    camera.position.y = 0;
-    camera.lookAt(0, 0, 0);
-
-    if (liveEnvRig && liveEnvCubeCamera && liveEnvScene && liveEnvTarget) {
-      liveEnvRig.rotation.x = 0;
-      liveEnvRig.rotation.y = p;
-      liveEnvRig.rotation.z = 0;
-
-      liveEnvCubeCamera.update(renderer, liveEnvScene);
-      scene.environment = liveEnvTarget.texture;
-    }
-
-    if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
-      proofChromeMaterials.forEach(function (mat) {
-        mat.envMap = liveEnvTarget.texture;
-        mat.envMapIntensity = 7.95 + energy * 0.62;
-        if ("roughness" in mat) mat.roughness = 0.0095;
-        if ("metalness" in mat) mat.metalness = 1.0;
-        mat.needsUpdate = true;
-      });
-    }
-
-    renderer.toneMappingExposure = 1.89;
-    renderer.render(scene, camera);
-
-    if (loaded && !firstFrameRendered) {
-      firstFrameRendered = true;
-      setStatus("three_ready_first_frame");
-      header.classList.remove("is-webgl-logo-booting");
-      header.classList.remove("is-webgl-logo-fallback");
-      header.classList.add("is-webgl-logo-ready");
-    }
-  }
-
-  init();
-
-  window.setTimeout(function () {
-    if (!firstFrameRendered) {
-      console.warn("PaletteKnife Three.js GLB renderer not visible; SVG fallback remains.", window.PALETTEKNIFE_WEBGL_LOGO_STATUS);
-      fallback("three_timeout_keep_svg");
-    }
-  }, 10000);
-})();
 </script>
 
 </body>
