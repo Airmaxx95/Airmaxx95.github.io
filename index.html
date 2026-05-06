@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g47 mobile nav long-jump defer updates
+Source: v149g46c_mobile_glb_high_res_lightbars_restore
+Change: mobile nav jumps defer intermediate panel/analytics/nav UI updates until target slide is reached
+Z-axis: untouched
+Blur: untouched
+Title DOM-write fix: retained
+Mobile GLB/lightbars: retained
+Viewport alpha mask: retained
+-->
+<!--
 PaletteKnife v149g46c mobile GLB high-res lightbars restored
 Source: v149g46b_mobile_glb_header_visible_clean
 Single correction: restore v149g16-style mobile WebGL resolution + live lightbar/environment reactivity
@@ -4415,6 +4425,19 @@ body.is-booting #panelDesc {
   let returningToStart = false;
   let anchorTarget = null;
   let currentCenteredIndex = 0;
+  let mobileNavJumpTargetIndex = null;
+
+  function isMobileNavJumpRuntime() {
+    return !!(
+      window.matchMedia &&
+      (
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(hover: none)").matches ||
+        window.innerWidth <= 900
+      )
+    );
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -6323,6 +6346,22 @@ body.is-booting #panelDesc {
     const anchors = getAnchorPositions();
     if (!anchors.length) return;
     const clampedIndex = Math.max(0, Math.min(anchors.length - 1, targetIndex));
+
+    /*
+      v149g47 mobile nav optimisation:
+      On iOS 26, long nav jumps were smooth visually but stalled when each
+      intermediate slide became the temporary centered item and triggered
+      panel/analytics/nav UI updates. Keep the z-axis animation intact, but
+      defer those expensive centered-slide side effects until the requested
+      nav target is reached.
+    */
+    const navDistance = Math.abs(clampedIndex - currentCenteredIndex);
+    mobileNavJumpTargetIndex = (isMobileNavJumpRuntime() && navDistance > 1) ? clampedIndex : null;
+
+    if (mobileNavJumpTargetIndex !== null && navPanel && navPanel.classList.contains("is-open")) {
+      setNavPanelOpen(false);
+    }
+
     anchorTarget = anchors[clampedIndex];
     returningToStart = false;
     targetVelocity = 0;
@@ -6369,9 +6408,11 @@ body.is-booting #panelDesc {
           item_name: String(product.title || ""),
           index: index
         });
-        goToSlideAbsolute(index);
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= 768 && navPanel && navPanel.classList.contains("is-open")) {
           setNavPanelOpen(false);
+          requestAnimationFrame(() => goToSlideAbsolute(index));
+        } else {
+          goToSlideAbsolute(index);
         }
       });
 
@@ -6575,19 +6616,30 @@ body.is-booting #panelDesc {
 
     const newCentered = getCenteredIndex();
     if (newCentered !== currentCenteredIndex) {
-      closeAllLightboxes();
-      currentCenteredIndex = newCentered;
-      setPanelValidationMessage("");
-      renderPanel(currentCenteredIndex);
+      const isDeferredMobileNavStep = (
+        mobileNavJumpTargetIndex !== null &&
+        newCentered !== mobileNavJumpTargetIndex
+      );
 
-      const currentProduct = PRODUCTS[currentCenteredIndex];
-      trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
-      const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
-      if (navPanel && navPanel.classList.contains("is-open")) {
-        if (hideNavForCurrent) {
-          setNavPanelOpen(false);
-        } else {
-          updateNavPanelMaxHeight();
+      if (!isDeferredMobileNavStep) {
+        closeAllLightboxes();
+        currentCenteredIndex = newCentered;
+        setPanelValidationMessage("");
+        renderPanel(currentCenteredIndex);
+
+        const currentProduct = PRODUCTS[currentCenteredIndex];
+        trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
+        const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
+        if (navPanel && navPanel.classList.contains("is-open")) {
+          if (hideNavForCurrent) {
+            setNavPanelOpen(false);
+          } else {
+            updateNavPanelMaxHeight();
+          }
+        }
+
+        if (mobileNavJumpTargetIndex === currentCenteredIndex) {
+          mobileNavJumpTargetIndex = null;
         }
       }
     }
