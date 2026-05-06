@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g42 iOS 26 overlay group test 3
+PaletteKnife v149g44 iOS 26 overlay group test 5
 Source: v149g25_restore_approved_safari_glb_background_5f5b61
 Desktop: untouched
 Z-axis: untouched
 Card blur: untouched
 Viewport alpha mask: retained/restored
-Mobile test: title + left meta restored; product panel/nav/cart/detached CTA hidden.
+Mobile test: left meta only restored; slide title/product panel/nav/cart/detached CTA hidden.
 -->
 <html lang="en">
 <head>
@@ -4008,18 +4008,18 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g42 — iOS 26 MOBILE OVERLAY GROUP TEST 3
+   v149g44 — iOS 26 MOBILE OVERLAY GROUP TEST 5
    Built from approved v149g25.
    Desktop untouched.
    Z-axis untouched.
    Card blur untouched.
    iPhone viewport alpha mask retained/restored.
-   v149g41 result: header/footer/footer-panels smooth.
-   Test: restore slide title + left meta only.
-   Keep product panel/nav/cart/detached CTA hidden.
+   v149g43 result: slide title only restored = lag.
+   Test: restore left meta only; hide slide title and heavy overlay stack.
    ========================================================= */
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 900px), (pointer: coarse), (hover: none) {
+    .slide-title-display,
     .panel,
     .panel-actions-mobile-detached,
     .nav-panel,
