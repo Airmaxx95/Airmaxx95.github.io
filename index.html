@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g46c mobile GLB high-res lightbars restored
+Source: v149g46b_mobile_glb_header_visible_clean
+Single correction: restore v149g16-style mobile WebGL resolution + live lightbar/environment reactivity
+Z-axis: untouched
+Title DOM-write fix: retained
+Viewport alpha mask: untouched
+-->
+<!--
 PaletteKnife v149g46b mobile WebGL GLB header visible clean
 Source: v149g45_ios26_title_dom_write_fix
 Single change: remove mobile GLB hard-disable CSS/JS blocks so GLB can appear after SVG boot fade
@@ -7458,7 +7466,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobileHeaderWebGL ? 1 : 1.8));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.5 : 1.8));
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -7490,18 +7498,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const materials = Array.isArray(child.material) ? child.material : [child.material];
 
       materials.forEach((mat) => {
-        if (isMobileHeaderWebGL) {
-          /* Mobile performance mode: no live lightbar reflections. Keep a readable static silver material. */
-          if ("metalness" in mat) mat.metalness = 0.42;
-          if ("roughness" in mat) mat.roughness = 0.20;
-          if ("color" in mat) mat.color = new THREE.Color(0xf7f7f7);
-          mat.envMapIntensity = 0.0;
-        } else {
-          if ("metalness" in mat) mat.metalness = 1.0;
-          if ("roughness" in mat) mat.roughness = 0.018;
-          if ("color" in mat) mat.color = new THREE.Color(0xf6f7f8);
-          mat.envMapIntensity = 6.0;
-        }
+        if ("metalness" in mat) mat.metalness = 1.0;
+        if ("roughness" in mat) mat.roughness = 0.018;
+        if ("color" in mat) mat.color = new THREE.Color(0xf6f7f8);
+        mat.envMapIntensity = 6.0;
         mat.needsUpdate = true;
         proofChromeMaterials.push(mat);
       });
@@ -7512,20 +7512,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   function makeFallbackEnvironment() {
-    if (isMobileHeaderWebGL) {
-      /* Mobile: completely skip the hidden lightbar/CubeCamera rig. This removes the suspected throttling source instead of merely lowering resolution. */
-      liveEnvScene = null;
-      liveEnvRig = null;
-      liveEnvCubeCamera = null;
-      liveEnvTarget = null;
-      scene.environment = null;
-      window.PALETTEKNIFE_CHROME_DEBUG = {
-        mode: "v149g19_mobile_glb_disabled",
-        reflectionChildren: 0,
-        status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
-      };
-      return;
-    }
     /*
       v149g5 balanced tonal orbit bands:
       Hidden CubeCamera reflection world only.
@@ -7672,7 +7658,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       setStatus("three_initialising");
-      renderer = new THREE.WebGLRenderer({ antialias: !isMobileHeaderWebGL, canvas, alpha: true, powerPreference: isMobileHeaderWebGL ? "low-power" : "high-performance", premultipliedAlpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, canvas, alpha: true, powerPreference: "high-performance", premultipliedAlpha: true });
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -7722,7 +7708,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
       window.addEventListener("resize", function () {
         updateHolderSize();
-        if (isMobileHeaderWebGL) animate(performance.now());
       }, { passive: true });
       animate(performance.now());
     } catch (error) {
@@ -7732,7 +7717,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   window.addEventListener("paletteknife:zaxis", function (event) {
-    if (isMobileHeaderWebGL) return;
     if (!event.detail) return;
     const nextPosition = Number(event.detail.position || 0);
     const rawVelocity = Number(event.detail.velocity || 0) + Number(event.detail.targetVelocity || 0);
@@ -7746,7 +7730,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }, { passive: true });
 
   window.addEventListener("wheel", function (event) {
-    if (isMobileHeaderWebGL) return;
     reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.30, Math.abs(event.deltaY) * 0.0020));
     reactive.syntheticPhase += event.deltaY * 0.00115;
     reactive.velocityMemory = reactive.velocityMemory * 0.84 + event.deltaY * 0.016;
@@ -7754,12 +7737,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let touchY = null;
   window.addEventListener("touchstart", function (event) {
-    if (isMobileHeaderWebGL) return;
     if (event.touches && event.touches.length) touchY = event.touches[0].clientY;
   }, { passive: true });
 
   window.addEventListener("touchmove", function (event) {
-    if (isMobileHeaderWebGL) return;
     if (!event.touches || !event.touches.length || touchY === null) return;
     const y = event.touches[0].clientY;
     const dy = touchY - y;
