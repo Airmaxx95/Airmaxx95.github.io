@@ -6607,7 +6607,14 @@ body.is-booting #panelDesc {
 
     renderAll();
     try {
-      window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
+      const shouldDispatchZAxisToHeader = !(window.matchMedia && (
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(hover: none)").matches ||
+        window.innerWidth < 901
+      ));
+      if (shouldDispatchZAxisToHeader) {
+        window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
+      }
     } catch (error) {}
 
     if (
@@ -7295,6 +7302,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const holder = document.getElementById("webglLogoModel");
   const canvas = document.getElementById("webglLogoCanvas");
   window.PALETTEKNIFE_WEBGL_LOGO_STATUS = "three_not_started";
+  window.PALETTEKNIFE_MOBILE_WEBGL_DIAGNOSTIC = {
+    build: "v149g30",
+    source: "v149g25_restore_approved_safari_glb_background_5f5b61",
+    zAxisVisualsTouched: false,
+    mobileZAxisHeaderBridgeDisabled: true
+  };
+  
 
   function setStatus(value) {
     window.PALETTEKNIFE_WEBGL_LOGO_STATUS = value;
@@ -7309,14 +7323,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  window.PALETTEKNIFE_MOBILE_WEBGL_DIAGNOSTIC = {
-    build: "v149g29",
-    source: "v149g25_restore_approved_safari_glb_background_5f5b61",
-    zAxisTouched: false,
-    mobileCubeCameraDisabled: true,
-    mobileDynamicEnvironmentDisabled: true
-  };
-
   function isTouchOrMobileHeader() {
     const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
     const noHover = window.matchMedia && window.matchMedia("(hover: none)").matches;
@@ -7329,7 +7335,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function canUseWebGL() {
     if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
-    if (isTouchOrMobileHeader()) return { ok: false, reason: "mobile_cubecamera_dynamic_env_disabled_zaxis_untouched" };
+    if (isTouchOrMobileHeader()) return { ok: false, reason: "mobile_touch_hard_disabled" };
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
     try {
       const c = document.createElement("canvas");
@@ -7355,7 +7361,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const capability = canUseWebGL();
   if (!capability.ok) {
-    if (holder && /mobile_touch_hard_disabled|mobile_cubecamera_dynamic_env_disabled_zaxis_untouched|viewport_|reduced_motion/.test(capability.reason || "")) {
+    if (holder && /mobile_touch_hard_disabled|viewport_|reduced_motion/.test(capability.reason || "")) {
       holder.innerHTML = "";
       holder.setAttribute("data-webgl-disabled", capability.reason);
     }
@@ -7470,7 +7476,7 @@ document.addEventListener('DOMContentLoaded', function () {
       liveEnvTarget = null;
       scene.environment = null;
       window.PALETTEKNIFE_CHROME_DEBUG = {
-        mode: "v149g29_mobile_cubecamera_dynamic_env_disabled_zaxis_untouched",
+        mode: "v149g19_mobile_glb_disabled",
         reflectionChildren: 0,
         status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
       };
