@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g34 alpha-mask removal test
-Source: v149g33_v149g16_mobile_runtime_probe_background_5f5b61
+PaletteKnife v149g45 iOS 26 title DOM-write fix
+Source: v149g25_restore_approved_safari_glb_background_5f5b61
+Desktop: untouched
 Z-axis: untouched
-Header/WebGL: untouched
-Change: removed all CSS mask-image / -webkit-mask-image declarations and historical iPhone alpha-mask blocks.
--->
-<!--
-PaletteKnife v149g33 regression probe
-Source: v149g16_mobile_glb_high_res
-Change: approved background #5f5b61 only
-Purpose: confirm whether the remembered smooth mobile runtime returns before later header/WebGL changes.
-Z-axis: untouched from v149g16.
+Card blur: untouched
+Viewport alpha mask: retained/restored
+Change: title DOM/text/opacity writes are cached to avoid per-frame fixed overlay churn on iOS 26.
 -->
 <html lang="en">
 <head>
@@ -57,7 +52,6 @@ Z-axis: untouched from v149g16.
 <meta name="twitter:image:alt" content="PaletteKnife brand preview image">
 
 
-<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 
 <title>PaletteKnife — Editions & Objects</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -3462,6 +3456,32 @@ body.is-booting #panelDesc {
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 768px) {
     .scene {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,0,0,0.18) 4%,
+        rgba(0,0,0,0.82) 8%,
+        #000 12%,
+        #000 88%,
+        rgba(0,0,0,0.82) 92%,
+        rgba(0,0,0,0.18) 96%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,0,0,0.18) 4%,
+        rgba(0,0,0,0.82) 8%,
+        #000 12%,
+        #000 88%,
+        rgba(0,0,0,0.82) 92%,
+        rgba(0,0,0,0.18) 96%,
+        transparent 100%
+      );
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-size: 100% 100%;
+      mask-size: 100% 100%;
     }
   }
 }
@@ -3485,6 +3505,10 @@ body.is-booting #panelDesc {
       bottom: calc(0px - env(safe-area-inset-bottom)) !important;
       height: auto !important;
       min-height: calc(100dvh + env(safe-area-inset-top) + env(safe-area-inset-bottom)) !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      -webkit-mask-size: auto !important;
+      mask-size: auto !important;
       padding-top: env(safe-area-inset-top) !important;
       padding-bottom: env(safe-area-inset-bottom) !important;
       overflow: visible !important;
@@ -3503,6 +3527,28 @@ body.is-booting #panelDesc {
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 768px) {
     .scene {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,0,0,0.45) 3.5%,
+        #000 8%,
+        #000 92%,
+        rgba(0,0,0,0.45) 96.5%,
+        transparent 100%
+      ) !important;
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0,0,0,0.45) 3.5%,
+        #000 8%,
+        #000 92%,
+        rgba(0,0,0,0.45) 96.5%,
+        transparent 100%
+      ) !important;
+      -webkit-mask-repeat: no-repeat !important;
+      mask-repeat: no-repeat !important;
+      -webkit-mask-size: 100% 100% !important;
+      mask-size: 100% 100% !important;
     }
   }
 }
@@ -3778,6 +3824,188 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g18 — HEADER RECOVERY + MOBILE LIGHTBAR KILL SWITCH
+   Built from v149g16, not from failed v149g17.
+   Scope only:
+   - SVG visible immediately while GLB loads.
+   - Preserve v149g16 GLB sizing/position pipeline.
+   - Move header upward so fallback does not collide with slide title.
+   - Remove mobile lightbar/CubeCamera workload.
+   ========================================================= */
+.site-header {
+  top: 8px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+.site-header.is-ready {
+  visibility: visible !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transform: translateX(-50%) translateY(0) !important;
+}
+.site-header.is-webgl-logo-booting .webgl-logo-fallback,
+.site-header.is-webgl-logo-fallback .webgl-logo-fallback {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.site-header.is-webgl-logo-booting .webgl-logo-model,
+.site-header.is-webgl-logo-fallback .webgl-logo-model {
+  opacity: 0 !important;
+}
+/* Desktop: restore v149g16 sizing; do not use the failed fixed stage from v149g17. */
+@media (min-width: 769px) {
+  .site-header .webgl-logo-wrap {
+    width: max-content !important;
+    height: auto !important;
+    max-width: none !important;
+    display: inline-grid !important;
+    place-items: center !important;
+  }
+  .site-header .webgl-logo-fallback {
+    width: max-content !important;
+    height: auto !important;
+  }
+  .site-header .logo-svg {
+    width: auto !important;
+    height: 3em !important;
+    max-width: none !important;
+    object-fit: contain !important;
+  }
+  .site-header .webgl-logo-model {
+    width: 100% !important;
+    height: 3.6em !important;
+    max-width: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+}
+@media (max-width: 768px) {
+  .site-header {
+    top: 10px !important;
+  }
+  .site-header .webgl-logo-wrap,
+  .site-header .webgl-logo-fallback,
+  .site-header .webgl-logo-model {
+    width: 12.8em !important;
+    height: 4.35em !important;
+    max-width: 78vw !important;
+    aspect-ratio: 12.8 / 4.35 !important;
+  }
+  .site-header .logo-svg {
+    height: 3.35em !important;
+    width: auto !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+  }
+}
+@media (max-width: 480px) {
+  .site-header {
+    top: 8px !important;
+  }
+  .site-header .webgl-logo-wrap,
+  .site-header .webgl-logo-fallback,
+  .site-header .webgl-logo-model {
+    width: 12.2em !important;
+    height: 4.15em !important;
+    max-width: 78vw !important;
+    aspect-ratio: 12.2 / 4.15 !important;
+  }
+  .site-header .logo-svg {
+    height: 3.25em !important;
+  }
+}
+
+
+/* =========================================================
+   v149g19 — SAFARI GLB FIT + MOBILE GLB FULL DISABLE
+   Built from v149g16 recovery path.
+   Scope only:
+   - Chrome desktop remains the completed reference.
+   - Safari desktop GLB viewport is locked to the SVG fallback box.
+   - Mobile GLB/WebGL header is fully disabled to rule out throttling.
+   - No glare code.
+   ========================================================= */
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .site-header .webgl-logo-model,
+  .site-header .webgl-logo-canvas {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .site-header .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+/* Safari-only: avoid Safari grid/stretch interpretation by taking GLB out of layout
+   and pinning it to the exact SVG/WebP fallback footprint. */
+@supports (-webkit-hyphens: none) and (not (-moz-appearance: none)) {
+  @media (min-width: 901px) {
+    .site-header .webgl-logo-wrap {
+      position: relative !important;
+      display: inline-block !important;
+      width: max-content !important;
+      height: auto !important;
+      line-height: 0 !important;
+      overflow: visible !important;
+    }
+    .site-header .webgl-logo-fallback {
+      position: relative !important;
+      display: block !important;
+      width: max-content !important;
+      height: auto !important;
+      line-height: 0 !important;
+      z-index: 2 !important;
+    }
+    .site-header .webgl-logo-model {
+      position: absolute !important;
+      left: 50% !important;
+      top: 50% !important;
+      width: var(--pk-safari-logo-w, 100%) !important;
+      height: var(--pk-safari-logo-h, 3em) !important;
+      max-width: none !important;
+      aspect-ratio: auto !important;
+      transform: translate(-50%, -50%) !important;
+      overflow: visible !important;
+      z-index: 3 !important;
+    }
+    .site-header .webgl-logo-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block !important;
+    }
+  }
+}
+
+
+/* =========================================================
+   v149g20 — SAFARI UNIFORM SCALE + MOBILE WEBGL HARD OFF
+   Built from v149g19. Scope only:
+   - Chrome desktop visual path remains untouched.
+   - Safari desktop GLB gets a uniform internal scale boost; no stretch.
+   - Touch/coarse/mobile devices never initialise the GLB renderer.
+   - No glare code.
+   ========================================================= */
+@media (pointer: coarse), (hover: none), (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .site-header .webgl-logo-model,
+  .site-header .webgl-logo-canvas {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .site-header .webgl-logo-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -3813,7 +4041,7 @@ body.is-booting #panelDesc {
 <header class="site-header is-webgl-logo-booting" id="siteHeader">
   <div class="header-inner">
     <div class="logo webgl-logo-wrap" aria-label="PaletteKnife">
-      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g16-mobile-hires" data-env-src="media/brand/studio_small_09.jpg">
+      <div id="webglLogoModel" class="webgl-logo-model" aria-hidden="true" data-glb-src="media/brand/paletteknife_logo.glb?v=149g20-safari-scale-mobile-hard-off" data-env-src="media/brand/studio_small_09.jpg">
         <canvas id="webglLogoCanvas" class="webgl-logo-canvas"></canvas>
       </div>
 <picture class="webgl-logo-fallback"><source srcset="media/brand/logo.webp" type="image/webp"><img src="media/brand/logo.svg" alt="PaletteKnife" class="logo-svg" id="siteHeaderLogo"></picture>
@@ -6259,6 +6487,12 @@ body.is-booting #panelDesc {
     return nearAnchor && settled;
   }
 
+  let lastRenderedSlideTitleIndex = -1;
+  let lastRenderedSlideTitleText = "";
+  let lastRenderedSlideTitleSlug = "";
+  let lastRenderedSlideTitleVisible = null;
+  let lastRenderedLeftMetaVisible = null;
+
   function renderSlideTitle() {
     if (!slideTitleDisplay) return;
 
@@ -6266,15 +6500,48 @@ body.is-booting #panelDesc {
     const title = String((product && product.title) || "").trim();
     const slug = String((product && product.slug) || "").trim();
     const showMeta = shouldShowCenteredTitle();
+    const nextTitleVisible = showMeta ? "1" : "0";
+    const nextLeftMetaVisible = showMeta ? "1" : "0";
 
-    if (slideTitleText) slideTitleText.textContent = title;
-    if (slideTitleSlug) {
-      slideTitleSlug.textContent = slug;
-      slideTitleSlug.style.display = slug ? "block" : "none";
+    /*
+      v149g45 iOS 26 fix:
+      Keep the title feature visually intact, but avoid rewriting fixed overlay text
+      and opacity every z-axis animation frame. Safari/iOS 26 appears to throttle
+      when this fixed title layer churns while blurred 3D slides are moving.
+    */
+    if (
+      currentCenteredIndex !== lastRenderedSlideTitleIndex ||
+      title !== lastRenderedSlideTitleText ||
+      slug !== lastRenderedSlideTitleSlug
+    ) {
+      if (slideTitleText && slideTitleText.textContent !== title) {
+        slideTitleText.textContent = title;
+      }
+
+      if (slideTitleSlug) {
+        if (slideTitleSlug.textContent !== slug) {
+          slideTitleSlug.textContent = slug;
+        }
+        const nextSlugDisplay = slug ? "block" : "none";
+        if (slideTitleSlug.style.display !== nextSlugDisplay) {
+          slideTitleSlug.style.display = nextSlugDisplay;
+        }
+      }
+
+      lastRenderedSlideTitleIndex = currentCenteredIndex;
+      lastRenderedSlideTitleText = title;
+      lastRenderedSlideTitleSlug = slug;
     }
 
-    slideTitleDisplay.style.opacity = showMeta ? "1" : "0";
-    if (leftMeta) leftMeta.style.opacity = showMeta ? "1" : "0";
+    if (lastRenderedSlideTitleVisible !== nextTitleVisible) {
+      slideTitleDisplay.style.opacity = nextTitleVisible;
+      lastRenderedSlideTitleVisible = nextTitleVisible;
+    }
+
+    if (leftMeta && lastRenderedLeftMetaVisible !== nextLeftMetaVisible) {
+      leftMeta.style.opacity = nextLeftMetaVisible;
+      lastRenderedLeftMetaVisible = nextLeftMetaVisible;
+    }
   }
 
   function renderAll() {
@@ -7071,7 +7338,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script type="module">
 (function () {
-  const DESKTOP_MIN_WIDTH = 0;
+  const DESKTOP_MIN_WIDTH = 901;
   const header = document.getElementById("siteHeader");
   const holder = document.getElementById("webglLogoModel");
   const canvas = document.getElementById("webglLogoCanvas");
@@ -7090,9 +7357,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function isTouchOrMobileHeader() {
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const noHover = window.matchMedia && window.matchMedia("(hover: none)").matches;
+    const narrow = window.innerWidth < DESKTOP_MIN_WIDTH;
+    const touchPoints = navigator.maxTouchPoints && navigator.maxTouchPoints > 0;
+    const ua = navigator.userAgent || "";
+    const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+    return !!(coarse || noHover || narrow || touchPoints || mobileUA);
+  }
+
   function canUseWebGL() {
     if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
-    if (window.innerWidth < DESKTOP_MIN_WIDTH) return { ok: false, reason: "viewport_" + window.innerWidth };
+    if (isTouchOrMobileHeader()) return { ok: false, reason: "mobile_touch_hard_disabled" };
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
     try {
       const c = document.createElement("canvas");
@@ -7102,8 +7379,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+
+  if (header) {
+    const fallbackImg = header.querySelector(".webgl-logo-fallback img");
+    if (fallbackImg) {
+      if (fallbackImg.complete) {
+        window.requestAnimationFrame(lockSafariHolderToFallback);
+      } else {
+        fallbackImg.addEventListener("load", function () {
+          window.requestAnimationFrame(lockSafariHolderToFallback);
+        }, { once: true });
+      }
+    }
+  }
+
   const capability = canUseWebGL();
   if (!capability.ok) {
+    if (holder && /mobile_touch_hard_disabled|viewport_|reduced_motion/.test(capability.reason || "")) {
+      holder.innerHTML = "";
+      holder.setAttribute("data-webgl-disabled", capability.reason);
+    }
     fallback(capability.reason);
     return;
   }
@@ -7125,16 +7420,35 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   let loaded = false;
   let firstFrameRendered = false;
+  const isMobileHeaderWebGL = isTouchOrMobileHeader();
 
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
   const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
 
+  function isSafariDesktop() {
+    const ua = navigator.userAgent || "";
+    const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+    return isSafari && window.innerWidth >= DESKTOP_MIN_WIDTH;
+  }
+
+  function lockSafariHolderToFallback() {
+    if (!isSafariDesktop() || !header || !holder) return;
+    const fallbackImg = header.querySelector(".webgl-logo-fallback img");
+    if (!fallbackImg) return;
+    const rect = fallbackImg.getBoundingClientRect();
+    if (rect.width > 2 && rect.height > 2) {
+      holder.style.setProperty("--pk-safari-logo-w", rect.width.toFixed(2) + "px");
+      holder.style.setProperty("--pk-safari-logo-h", rect.height.toFixed(2) + "px");
+    }
+  }
+
   function updateHolderSize() {
     if (!holder || !renderer || !camera) return;
+    lockSafariHolderToFallback();
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.5 : 1.8));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobileHeaderWebGL ? 1 : 1.8));
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -7148,7 +7462,8 @@ document.addEventListener('DOMContentLoaded', function () {
     box.getCenter(center);
     object.position.sub(center);
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    object.scale.setScalar(4.65 / maxDim);
+    const safariUniformScaleBoost = isSafariDesktop() ? 1.18 : 1.0;
+    object.scale.setScalar((4.65 * safariUniformScaleBoost) / maxDim);
     const box2 = new THREE.Box3().setFromObject(object);
     const center2 = new THREE.Vector3();
     box2.getCenter(center2);
@@ -7165,10 +7480,18 @@ document.addEventListener('DOMContentLoaded', function () {
       const materials = Array.isArray(child.material) ? child.material : [child.material];
 
       materials.forEach((mat) => {
-        if ("metalness" in mat) mat.metalness = 1.0;
-        if ("roughness" in mat) mat.roughness = 0.018;
-        if ("color" in mat) mat.color = new THREE.Color(0xf6f7f8);
-        mat.envMapIntensity = 6.0;
+        if (isMobileHeaderWebGL) {
+          /* Mobile performance mode: no live lightbar reflections. Keep a readable static silver material. */
+          if ("metalness" in mat) mat.metalness = 0.42;
+          if ("roughness" in mat) mat.roughness = 0.20;
+          if ("color" in mat) mat.color = new THREE.Color(0xf7f7f7);
+          mat.envMapIntensity = 0.0;
+        } else {
+          if ("metalness" in mat) mat.metalness = 1.0;
+          if ("roughness" in mat) mat.roughness = 0.018;
+          if ("color" in mat) mat.color = new THREE.Color(0xf6f7f8);
+          mat.envMapIntensity = 6.0;
+        }
         mat.needsUpdate = true;
         proofChromeMaterials.push(mat);
       });
@@ -7179,6 +7502,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   function makeFallbackEnvironment() {
+    if (isMobileHeaderWebGL) {
+      /* Mobile: completely skip the hidden lightbar/CubeCamera rig. This removes the suspected throttling source instead of merely lowering resolution. */
+      liveEnvScene = null;
+      liveEnvRig = null;
+      liveEnvCubeCamera = null;
+      liveEnvTarget = null;
+      scene.environment = null;
+      window.PALETTEKNIFE_CHROME_DEBUG = {
+        mode: "v149g19_mobile_glb_disabled",
+        reflectionChildren: 0,
+        status: window.PALETTEKNIFE_WEBGL_LOGO_STATUS
+      };
+      return;
+    }
     /*
       v149g5 balanced tonal orbit bands:
       Hidden CubeCamera reflection world only.
@@ -7325,7 +7662,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       setStatus("three_initialising");
-      renderer = new THREE.WebGLRenderer({ antialias: true, canvas, alpha: true, antialias: true, powerPreference: "high-performance", premultipliedAlpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: !isMobileHeaderWebGL, canvas, alpha: true, powerPreference: isMobileHeaderWebGL ? "low-power" : "high-performance", premultipliedAlpha: true });
       renderer.setClearColor(0x000000, 0);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -7351,8 +7688,10 @@ document.addEventListener('DOMContentLoaded', function () {
       makeFallbackEnvironment();
       if (liveEnvCubeCamera && liveEnvScene) {
         liveEnvCubeCamera.update(renderer, liveEnvScene);
+        setStatus("live_cube_environment_loaded");
+      } else {
+        setStatus("mobile_static_environment_no_lightbars");
       }
-      setStatus("live_cube_environment_loaded");
 
       setStatus("loading_glb_draco");
       const dracoLoader = new DRACOLoader();
@@ -7371,7 +7710,10 @@ document.addEventListener('DOMContentLoaded', function () {
       loaded = true;
       setStatus("three_ready_loaded");
 
-      window.addEventListener("resize", updateHolderSize, { passive: true });
+      window.addEventListener("resize", function () {
+        updateHolderSize();
+        if (isMobileHeaderWebGL) animate(performance.now());
+      }, { passive: true });
       animate(performance.now());
     } catch (error) {
       console.warn("PaletteKnife Three.js DRACO GLB renderer failed", error);
@@ -7380,6 +7722,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   window.addEventListener("paletteknife:zaxis", function (event) {
+    if (isMobileHeaderWebGL) return;
     if (!event.detail) return;
     const nextPosition = Number(event.detail.position || 0);
     const rawVelocity = Number(event.detail.velocity || 0) + Number(event.detail.targetVelocity || 0);
@@ -7393,6 +7736,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }, { passive: true });
 
   window.addEventListener("wheel", function (event) {
+    if (isMobileHeaderWebGL) return;
     reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.30, Math.abs(event.deltaY) * 0.0020));
     reactive.syntheticPhase += event.deltaY * 0.00115;
     reactive.velocityMemory = reactive.velocityMemory * 0.84 + event.deltaY * 0.016;
@@ -7400,10 +7744,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let touchY = null;
   window.addEventListener("touchstart", function (event) {
+    if (isMobileHeaderWebGL) return;
     if (event.touches && event.touches.length) touchY = event.touches[0].clientY;
   }, { passive: true });
 
   window.addEventListener("touchmove", function (event) {
+    if (isMobileHeaderWebGL) return;
     if (!event.touches || !event.touches.length || touchY === null) return;
     const y = event.touches[0].clientY;
     const dy = touchY - y;

@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g46 mobile alpha-mask raise + GLB header visible
+Source: v149g45_ios26_title_dom_write_fix
+Z-axis: untouched
+Title DOM-write fix: retained
+Viewport alpha mask: retained and raised
+Mobile GLB header: re-enabled
+-->
+<!--
 PaletteKnife v149g45 iOS 26 title DOM-write fix
 Source: v149g25_restore_approved_safari_glb_background_5f5b61
 Desktop: untouched
@@ -3459,23 +3467,23 @@ body.is-booting #panelDesc {
       -webkit-mask-image: linear-gradient(
         to bottom,
         transparent 0%,
-        rgba(0,0,0,0.18) 4%,
-        rgba(0,0,0,0.82) 8%,
-        #000 12%,
-        #000 88%,
-        rgba(0,0,0,0.82) 92%,
-        rgba(0,0,0,0.18) 96%,
+        rgba(0,0,0,0.22) 2.5%,
+        rgba(0,0,0,0.86) 6%,
+        #000 9%,
+        #000 85%,
+        rgba(0,0,0,0.80) 90%,
+        rgba(0,0,0,0.16) 95%,
         transparent 100%
       );
       mask-image: linear-gradient(
         to bottom,
         transparent 0%,
-        rgba(0,0,0,0.18) 4%,
-        rgba(0,0,0,0.82) 8%,
-        #000 12%,
-        #000 88%,
-        rgba(0,0,0,0.82) 92%,
-        rgba(0,0,0,0.18) 96%,
+        rgba(0,0,0,0.22) 2.5%,
+        rgba(0,0,0,0.86) 6%,
+        #000 9%,
+        #000 85%,
+        rgba(0,0,0,0.80) 90%,
+        rgba(0,0,0,0.16) 95%,
         transparent 100%
       );
       -webkit-mask-repeat: no-repeat;
@@ -3530,19 +3538,19 @@ body.is-booting #panelDesc {
       -webkit-mask-image: linear-gradient(
         to bottom,
         transparent 0%,
-        rgba(0,0,0,0.45) 3.5%,
-        #000 8%,
-        #000 92%,
-        rgba(0,0,0,0.45) 96.5%,
+        rgba(0,0,0,0.52) 2.4%,
+        #000 5.8%,
+        #000 89.5%,
+        rgba(0,0,0,0.42) 94.8%,
         transparent 100%
       ) !important;
       mask-image: linear-gradient(
         to bottom,
         transparent 0%,
-        rgba(0,0,0,0.45) 3.5%,
-        #000 8%,
-        #000 92%,
-        rgba(0,0,0,0.45) 96.5%,
+        rgba(0,0,0,0.52) 2.4%,
+        #000 5.8%,
+        #000 89.5%,
+        rgba(0,0,0,0.42) 94.8%,
         transparent 100%
       ) !important;
       -webkit-mask-repeat: no-repeat !important;
@@ -3600,7 +3608,7 @@ body.is-booting #panelDesc {
 .site-header.is-webgl-logo-booting .webgl-logo-model { opacity: 0.001; }
 .site-header.is-webgl-logo-booting .webgl-logo-fallback { opacity: 1; }
 
-@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   .webgl-logo-model { display: none !important; }
   .site-header.is-webgl-logo-ready .webgl-logo-fallback { opacity: 1 !important; }
 }
@@ -4003,6 +4011,38 @@ body.is-booting #panelDesc {
   .site-header .webgl-logo-fallback {
     opacity: 1 !important;
     visibility: visible !important;
+  }
+}
+
+
+/* =========================================================
+   v149g46 — MOBILE GLB HEADER VISIBLE + RAISED ALPHA MASK
+   Built from approved v149g45.
+   Desktop untouched.
+   Z-axis/title DOM-write fix retained.
+   Mobile/iOS: allow WebGL/GLB header to render again.
+   ========================================================= */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 900px), (pointer: coarse), (hover: none) {
+    .site-header .webgl-logo-wrap,
+    .site-header .webgl-logo-model,
+    .site-header .webgl-logo-canvas {
+      display: block !important;
+      visibility: visible !important;
+    }
+
+    .site-header.is-webgl-logo-ready .webgl-logo-model {
+      opacity: 1 !important;
+    }
+
+    .site-header.is-webgl-logo-ready .webgl-logo-fallback {
+      opacity: 0 !important;
+    }
+
+    .site-header.is-webgl-logo-booting .webgl-logo-fallback,
+    .site-header.is-webgl-logo-fallback .webgl-logo-fallback {
+      opacity: 1 !important;
+    }
   }
 }
 
@@ -7369,7 +7409,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function canUseWebGL() {
     if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
-    if (isTouchOrMobileHeader()) return { ok: false, reason: "mobile_touch_hard_disabled" };
+    /* v149g46: mobile GLB header re-enabled by request; do not hard-disable touch/mobile here. */
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
     try {
       const c = document.createElement("canvas");
