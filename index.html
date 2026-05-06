@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g48 mobile nav reverse settle fix
+Source: v149g47_mobile_nav_long_jump_defer_updates
+Change: mobile nav jump side-effects release only once target anchor is settled, fixing reverse-direction pre-target lag
+Z-axis: untouched
+Blur: untouched
+Title DOM-write fix: retained
+Mobile GLB/lightbars: retained
+Viewport alpha mask: retained
+-->
+<!--
 PaletteKnife v149g47 mobile nav long-jump defer updates
 Source: v149g46c_mobile_glb_high_res_lightbars_restore
 Change: mobile nav jumps defer intermediate panel/analytics/nav UI updates until target slide is reached
@@ -4438,6 +4448,17 @@ body.is-booting #panelDesc {
     );
   }
 
+  function isMobileNavJumpSettledOnTarget() {
+    if (mobileNavJumpTargetIndex === null) return false;
+    const targetAnchor = -(CONFIG.slideSpacing * mobileNavJumpTargetIndex);
+    return (
+      Math.abs(position - targetAnchor) < (CONFIG.centerDeadband + 0.35) &&
+      Math.abs(velocity) < 0.16 &&
+      Math.abs(targetVelocity) < 0.16 &&
+      anchorTarget === null
+    );
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -6616,14 +6637,14 @@ body.is-booting #panelDesc {
 
     const newCentered = getCenteredIndex();
     if (newCentered !== currentCenteredIndex) {
-      const isDeferredMobileNavStep = (
-        mobileNavJumpTargetIndex !== null &&
-        newCentered !== mobileNavJumpTargetIndex
-      );
+      const isMobileNavJumpActive = mobileNavJumpTargetIndex !== null;
+      const shouldReleaseMobileNavJump = isMobileNavJumpSettledOnTarget();
 
-      if (!isDeferredMobileNavStep) {
+      if (!isMobileNavJumpActive || shouldReleaseMobileNavJump) {
+        const finalCentered = shouldReleaseMobileNavJump ? mobileNavJumpTargetIndex : newCentered;
+
         closeAllLightboxes();
-        currentCenteredIndex = newCentered;
+        currentCenteredIndex = finalCentered;
         setPanelValidationMessage("");
         renderPanel(currentCenteredIndex);
 
@@ -6638,7 +6659,7 @@ body.is-booting #panelDesc {
           }
         }
 
-        if (mobileNavJumpTargetIndex === currentCenteredIndex) {
+        if (shouldReleaseMobileNavJump) {
           mobileNavJumpTargetIndex = null;
         }
       }
