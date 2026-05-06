@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g36 iOS 26 blur compositor test
+PaletteKnife v149g37 iOS 26 split blur from transform test
 Source: v149g25_restore_approved_safari_glb_background_5f5b61
 Desktop header: untouched
 Z-axis values: untouched
-Blur: retained
+Blur: retained, moved to inner layer on mobile/iOS only
 Viewport alpha mask: retained/restored
 -->
 <html lang="en">
@@ -4007,14 +4007,27 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g36 — iOS 26 MOBILE BLUR COMPOSITOR TEST
+   v149g37 — iOS 26 SPLIT BLUR FROM 3D TRANSFORM TEST
    Built from approved v149g25.
    Desktop untouched.
    Z-axis values untouched.
    Blur feature retained.
    iPhone viewport alpha mask retained/restored from approved lineage.
-   Purpose: keep blur but improve Safari/iOS compositing of 3D transform + filter.
+   Purpose: avoid Safari/iOS compositing filter and 3D transform on same layer.
    ========================================================= */
+.card-blur-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: filter;
+  pointer-events: auto;
+}
+
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 900px), (pointer: coarse), (hover: none) {
     .scene {
@@ -4030,16 +4043,14 @@ body.is-booting #panelDesc {
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
       contain: layout paint style;
-      will-change: transform, opacity, filter;
+      will-change: transform, opacity;
+      filter: none !important;
+      -webkit-filter: none !important;
     }
 
-    .media-frame,
-    .lightbox-stage,
-    .media-item {
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
+    .card-blur-layer {
+      contain: paint style;
+      will-change: filter;
     }
   }
 }
@@ -5696,7 +5707,11 @@ body.is-booting #panelDesc {
 
       const fade = document.createElement('div');
       fade.className = 'fade-overlay';
-      card.append(frame, lightbox, fade);
+
+      const blurLayer = document.createElement("div");
+      blurLayer.className = "card-blur-layer";
+      blurLayer.append(frame, lightbox, fade);
+      card.appendChild(blurLayer);
       card._fade = fade;
 
       frame.addEventListener("click", (event) => handleVisibleMediaClick(index, event));
@@ -5711,6 +5726,7 @@ body.is-booting #panelDesc {
       card._els = {
         frame,
         lightbox,
+        blurLayer,
         topbarMeta: meta,
         stageMedia,
         prevBtn,
@@ -6517,8 +6533,16 @@ body.is-booting #panelDesc {
       ? `translate3d(-50%, -50%, 0) translateZ(${effectiveZ}px) scale(${scale.toFixed(4)})`
       : `translate(-50%, -50%) translateZ(${effectiveZ}px) scale(${scale.toFixed(4)})`;
     card.style.opacity = opacity.toFixed(4);
-    const blurForCSS = useIOS26CompositorPath ? (Math.round(blur * 2) / 2) : blur;
-    card.style.filter = `blur(${blurForCSS.toFixed(useIOS26CompositorPath ? 1 : 2)}px)`;
+    if (useIOS26CompositorPath && card._els && card._els.blurLayer) {
+      card.style.filter = "";
+      const blurForCSS = Math.round(blur * 2) / 2;
+      card._els.blurLayer.style.filter = `blur(${blurForCSS.toFixed(1)}px)`;
+    } else {
+      card.style.filter = `blur(${blur.toFixed(2)}px)`;
+      if (card._els && card._els.blurLayer) {
+        card._els.blurLayer.style.filter = "";
+      }
+    }
   }
 
   function getCurrentSlideTitle() {
