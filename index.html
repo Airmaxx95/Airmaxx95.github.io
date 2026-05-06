@@ -3997,6 +3997,44 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g22 — MOBILE MASK / SAFE-AREA COMPOSITING OFF
+   Built on v149g21.
+   Mobile-only isolation test:
+   - removes iPhone scene alpha masks
+   - removes extended safe-area scene compositing
+   - keeps desktop Chrome/Safari header state untouched
+   - keeps mobile GLB disabled from v149g21
+   ========================================================= */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 768px) {
+    html,
+    body {
+      min-height: 100% !important;
+    }
+
+    .scene {
+      top: 0 !important;
+      bottom: 0 !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      overflow: hidden !important;
+
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      -webkit-mask: none !important;
+      mask: none !important;
+      -webkit-mask-size: auto !important;
+      mask-size: auto !important;
+      -webkit-mask-repeat: no-repeat !important;
+      mask-repeat: no-repeat !important;
+    }
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
