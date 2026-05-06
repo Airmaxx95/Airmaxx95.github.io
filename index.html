@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g51 mobile header DPR 2.0 safe optimisation
+PaletteKnife v149g52 mobile burst-scroll defer centered updates
 Source: v149g48_mobile_nav_reverse_settle_fix
-Change: mobile header WebGL renderer DPR reduced from 2.5 to 2.0
+Change: mobile rapid manual scroll defers intermediate centered-slide side effects until settled
 Z-axis: untouched
 Blur: untouched
 Title DOM-write fix: retained
 Nav reverse fix: retained
-Full-rate mobile GLB/lightbars/CubeCamera retained
+Mobile GLB/lightbars: retained
 Viewport alpha mask: retained
-v149g49/v149g50 discarded
+v149g49-v149g51 discarded
 -->
 <!--
 PaletteKnife v149g48 mobile nav reverse settle fix
@@ -4471,6 +4471,17 @@ body.is-booting #panelDesc {
     );
   }
 
+  function isMobileBurstScrollInFlight() {
+    if (!isMobileNavJumpRuntime()) return false;
+    if (mobileNavJumpTargetIndex !== null) return false;
+
+    const nearest = nearestAnchor(position);
+    const unsettled = Math.abs(position - nearest) > (CONFIG.centerDeadband + 0.35);
+    const moving = Math.abs(velocity) > 0.62 || Math.abs(targetVelocity) > 0.62;
+
+    return unsettled || moving;
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -6651,8 +6662,16 @@ body.is-booting #panelDesc {
     if (newCentered !== currentCenteredIndex) {
       const isMobileNavJumpActive = mobileNavJumpTargetIndex !== null;
       const shouldReleaseMobileNavJump = isMobileNavJumpSettledOnTarget();
+      const shouldDeferMobileBurstScroll = isMobileBurstScrollInFlight();
 
-      if (!isMobileNavJumpActive || shouldReleaseMobileNavJump) {
+      /*
+        v149g52 mobile burst-scroll optimisation:
+        For rapid manual 1→end→1 swipes, do not run panel / analytics /
+        lightbox / nav-height side effects for every temporary centered slide.
+        Wait until the z-axis settles, then update once. Z-axis motion, blur,
+        spacing and physics are untouched.
+      */
+      if ((!isMobileNavJumpActive && !shouldDeferMobileBurstScroll) || shouldReleaseMobileNavJump) {
         const finalCentered = shouldReleaseMobileNavJump ? mobileNavJumpTargetIndex : newCentered;
 
         closeAllLightboxes();
@@ -7551,14 +7570,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const rect = holder.getBoundingClientRect();
     const w = Math.max(2, Math.floor(rect.width));
     const h = Math.max(2, Math.floor(rect.height));
-    /*
-      v149g51 mobile optimisation:
-      Keep full-rate lightbars/CubeCamera and z-axis unchanged.
-      Reduce only the mobile header WebGL renderer DPR from 2.5 to 2.0.
-      This avoids the temporal stutter caused by frame-skipping governors while
-      reducing the constant GPU cost of the mobile header canvas on latest iOS.
-    */
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.0 : 1.8));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth <= 768 ? 2.5 : 1.8));
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
