@@ -1,5 +1,14 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g62 mobile burst title hide fix
+Source: v149g61_mobile_burst_title_render_gate
+Change: keeps flawless burst-scroll performance but hides stale slide title/left meta during mobile burst movement.
+Z-axis: untouched
+Blur: untouched
+media_nobutton per-card fix retained
+Dropdown system retained
+-->
+<!--
 PaletteKnife v149g61 mobile burst title render gate
 Source: v149g60_mobile_media_nobutton_per_card_position
 Change: during rapid mobile burst-scroll, skip per-frame slide-title render checks until motion settles.
@@ -4687,6 +4696,25 @@ body.is-booting #panelDesc {
     return !isMobileBurstScrollInFlight();
   }
 
+  function hideSlideTitleForMobileBurstScroll() {
+    /*
+      v149g62 correction:
+      v149g61 skipped title rendering during burst-scroll, but that let the
+      previous visible title remain on screen. Keep the performance gate, but
+      apply one cheap opacity hide during mobile burst-scroll so titles fade away
+      immediately and media_nobutton slides never show a stale title.
+    */
+    if (lastRenderedSlideTitleVisible !== "0") {
+      if (slideTitleDisplay) slideTitleDisplay.style.opacity = "0";
+      lastRenderedSlideTitleVisible = "0";
+    }
+
+    if (leftMeta && lastRenderedLeftMetaVisible !== "0") {
+      leftMeta.style.opacity = "0";
+      lastRenderedLeftMetaVisible = "0";
+    }
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -6917,6 +6945,8 @@ body.is-booting #panelDesc {
 
     if (shouldRenderTitleThisFrame()) {
       renderSlideTitle();
+    } else {
+      hideSlideTitleForMobileBurstScroll();
     }
   }
 
