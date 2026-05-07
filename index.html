@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g61 mobile burst title render gate
+Source: v149g60_mobile_media_nobutton_per_card_position
+Change: during rapid mobile burst-scroll, skip per-frame slide-title render checks until motion settles.
+Z-axis: untouched
+Blur: untouched
+media_nobutton per-card fix retained
+Dropdown system retained
+Mobile optimisation stack retained
+-->
+<!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
 Source: v149g58_dropdown_chrome_safari_match
 Change: media_nobutton mobile slide positioning is now per-card, not body-global.
@@ -4665,6 +4675,18 @@ body.is-booting #panelDesc {
     return unsettled || moving;
   }
 
+  function shouldRenderTitleThisFrame() {
+    /*
+      v149g61 mobile polish:
+      During rapid manual mobile burst-scroll, the slide title is hidden until
+      the motion settles anyway. Avoid running the title visibility/text routine
+      every frame during that burst. This preserves the title behaviour and all
+      z-axis visuals, but removes a fixed-overlay check from the hottest mobile
+      scroll path.
+    */
+    return !isMobileBurstScrollInFlight();
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -6893,7 +6915,9 @@ body.is-booting #panelDesc {
       }
     }
 
-    renderSlideTitle();
+    if (shouldRenderTitleThisFrame()) {
+      renderSlideTitle();
+    }
   }
 
   function render() {
