@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g59 mobile media_nobutton live state restore
+PaletteKnife v149g60 mobile media_nobutton per-card position fix
 Source: v149g58_dropdown_chrome_safari_match
-Change: restores dynamic mobile media_nobutton positioning during scroll while keeping v149g52 heavy centered-update deferral.
+Change: media_nobutton mobile slide positioning is now per-card, not body-global.
+Reason: prevents glitches when scrolling between media_nobutton and sale states.
 Z-axis: untouched
 Blur: untouched
-Mobile optimisation stack retained
+Mobile optimisation stack retained from v149g58
 Dropdown system retained
+v149g59 discarded
 -->
 <!--
 PaletteKnife v149g58 dropdown Chrome/Safari visual match
@@ -2290,7 +2292,6 @@ Change: title DOM/text/opacity writes are cached to avoid per-frame fixed overla
 @media (max-width: 768px) {
   /* Media no-button slides: centered vertically, panel hidden */
   body.mobile-media-nobutton-active .card {
-    top: 50% !important;
     max-height: 52vh !important;
   }
 
@@ -2920,13 +2921,13 @@ Change: title DOM/text/opacity writes are cached to avoid per-frame fixed overla
    ========================================================= */
 @media (max-width: 768px) {
   body:not(.mobile-media-nobutton-active) .card {
-    top: 42% !important;
+    /* v149g60: mobile card top is now per-card, not body-global. */
   }
 }
 
 @media (max-width: 480px) {
   body:not(.mobile-media-nobutton-active) .card {
-    top: 41% !important;
+    /* v149g60: mobile card top is now per-card, not body-global. */
   }
 }
 
@@ -4211,6 +4212,33 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g60 MOBILE MEDIA_NOBUTTON PER-CARD POSITION FIX
+   Replaces global body-driven slide position shift with per-card state.
+   This prevents mobile glitches when scrolling between media_nobutton and sale states.
+   ========================================================= */
+@media (max-width: 768px) {
+  .card {
+    top: 42% !important;
+  }
+
+  .card.is-media-nobutton-card {
+    top: 50% !important;
+    max-height: 52vh !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    top: 41% !important;
+  }
+
+  .card.is-media-nobutton-card {
+    top: 50% !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4635,28 +4663,6 @@ body.is-booting #panelDesc {
     const moving = Math.abs(velocity) > 0.62 || Math.abs(targetVelocity) > 0.62;
 
     return unsettled || moving;
-  }
-
-  let lastLiveMobileNoButtonState = null;
-
-  function syncLiveMobileMediaNoButtonState(liveIndex) {
-    /*
-      v149g59 regression fix:
-      v149g52 deferred heavy panel/render side effects during mobile burst scroll.
-      That was correct for performance, but it also delayed the lightweight
-      media_nobutton body class that controls mobile slide vertical positioning.
-      Restore this lightweight class update during scroll so media_nobutton →
-      for_sale positioning changes dynamically again, without reintroducing the
-      heavy panel/analytics/nav update churn.
-    */
-    if (!isMobileNavJumpRuntime()) return;
-    const product = PRODUCTS[liveIndex];
-    const isNoButton = !!(product && isMediaNoButtonState(product.saleState));
-
-    if (lastLiveMobileNoButtonState === isNoButton) return;
-
-    document.body.classList.toggle("mobile-media-nobutton-active", isNoButton);
-    lastLiveMobileNoButtonState = isNoButton;
   }
 
 
@@ -5857,7 +5863,7 @@ body.is-booting #panelDesc {
 
     PRODUCTS.forEach((product, index) => {
       const card = document.createElement("div");
-      card.className = "card";
+      card.className = isMediaNoButtonState(product.saleState) ? "card is-media-nobutton-card" : "card";
       card.dataset.index = String(index);
       card.dataset.id = product.id;
 
@@ -6465,9 +6471,6 @@ body.is-booting #panelDesc {
         }
 
         document.body.classList.toggle("mobile-media-nobutton-active", mediaNoButton && window.innerWidth <= 768);
-        if (window.innerWidth <= 768) {
-          lastLiveMobileNoButtonState = !!mediaNoButton;
-        }
 
         if (navPanel) {
           navPanel.style.display = showNav ? "flex" : "none";
@@ -6854,8 +6857,6 @@ body.is-booting #panelDesc {
 
     const newCentered = getCenteredIndex();
     if (newCentered !== currentCenteredIndex) {
-      syncLiveMobileMediaNoButtonState(newCentered);
-
       const isMobileNavJumpActive = mobileNavJumpTargetIndex !== null;
       const shouldReleaseMobileNavJump = isMobileNavJumpSettledOnTarget();
       const shouldDeferMobileBurstScroll = isMobileBurstScrollInFlight();
