@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g58 dropdown Chrome/Safari visual match
+Source: v149g57_dropdown_text_size_case_fix
+Change: normalises desktop select dimensions/border/arrow so Chrome matches Safari more closely; mobile native picker preserved.
+-->
+<!--
 PaletteKnife v149g57 dropdown text size/case fix
 Source: v149g56_native_variant_dropdowns
 Changes:
@@ -4153,6 +4158,48 @@ body.is-booting #panelDesc {
 
 .variant-dropdown option {
   text-transform: none !important;
+}
+
+
+/* =========================================================
+   v149g58 DROPDOWN CHROME / SAFARI VISUAL MATCH
+   Normalises desktop select rendering while preserving native system picker.
+   ========================================================= */
+.variant-dropdown {
+  box-sizing: border-box !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  padding: 2px 28px 2px 10px !important;
+  border: 1px solid black !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: black !important;
+  font-size: 15px !important;
+  line-height: 20px !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .variant-dropdown {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-image:
+      linear-gradient(45deg, transparent 50%, black 50%),
+      linear-gradient(135deg, black 50%, transparent 50%);
+    background-position:
+      calc(100% - 14px) 10px,
+      calc(100% - 9px) 10px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .variant-dropdown {
+    -webkit-appearance: menulist !important;
+    appearance: auto !important;
+  }
 }
 
 </style>
