@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g57 dropdown text size/case fix
+Source: v149g56_native_variant_dropdowns
+Changes:
+- dropdown visible text no longer shows stock quantity
+- dropdown text no longer forced uppercase
+- dropdown font-size matches Add to Cart button font-size: 15px !important
+-->
+<!--
 PaletteKnife v149g56 native variant dropdowns
 Source: v149g55_buttons_match_slide_title_text
 Change: panelVariantSection option-chip buttons replaced with native select dropdowns for size/colour/variant choices.
@@ -4116,9 +4124,9 @@ body.is-booting #panelDesc {
   border-radius: 0;
   padding: 12px 14px;
   font: inherit;
-  font-size: clamp(14px, 1.4vw, 20px);
+  font-size: 15px !important;
   line-height: 1.15;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .variant-dropdown:focus {
@@ -4132,6 +4140,19 @@ body.is-booting #panelDesc {
 
 .variant-dropdown option:disabled {
   color: rgba(0,0,0,0.35);
+}
+
+
+/* =========================================================
+   v149g57 NATIVE DROPDOWN TEXT SIZE / CASE FIX
+   ========================================================= */
+.variant-dropdown {
+  font-size: 15px !important !important;
+  text-transform: none !important;
+}
+
+.variant-dropdown option {
+  text-transform: none !important;
 }
 
 </style>
@@ -5919,11 +5940,6 @@ body.is-booting #panelDesc {
     const groups = [];
 
     function optionText(type, key, qty) {
-      if (type !== "size") return String(key || "");
-      const count = Number(qty || 0);
-      if (count > 0) {
-        return `${key} - Only ${count} remaining`;
-      }
       return String(key || "");
     }
 
