@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g55 buttons match slideTitleText
+Source: v149g54_cart_close_button_style_fix
+Change: Collection/Cart/Close buttons now use exact same font-size as .slide-title-text
+-->
+<!--
 PaletteKnife v149g54 cart close button style fix
 Source: v149g53_cart_nav_button_style_update
 Change: cart drawer Close button now matches Collection/Cart styling.
@@ -4074,14 +4079,14 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g54 CART CLOSE BUTTON STYLE FIX
-   Extends v149g53 button style to cart drawer Close button.
+   v149g55 BUTTONS MATCH SLIDE TITLE TEXT
+   Cart / Collection / Close buttons now match .slide-title-text sizing.
    ========================================================= */
 .nav-panel-toggle,
 .cart-toggle,
 .cart-close {
   background: transparent !important;
-  font-size: 28px !important;
+  font-size: clamp(14px, 1.4vw, 20px) !important;
   color: black !important;
 }
 
