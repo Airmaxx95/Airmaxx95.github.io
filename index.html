@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g64 mobile burst blur precision polish
+Source: v149g63_idle_settle_nearest_anchor_fix
+Change: during rapid mobile burst-scroll, blur CSS value is quantised to half-pixel steps to reduce iOS filter churn.
+Function from v149g63 retained.
+Z-axis physics: unchanged
+Blur feature: retained
+Dropdown system: retained
+media_nobutton per-card fix: retained
+-->
+<!--
 PaletteKnife v149g63 idle settle nearest anchor fix
 Source: v149g62_mobile_burst_title_hide_fix
 Change: idle auto-settle now resolves against all slide anchors instead of stale currentCenteredIndex neighbours.
@@ -6831,7 +6841,17 @@ body.is-booting #panelDesc {
 
     card.style.transform = `translate(-50%, -50%) translateZ(${effectiveZ}px) scale(${scale.toFixed(4)})`;
     card.style.opacity = opacity.toFixed(4);
-    card.style.filter = `blur(${blur.toFixed(2)}px)`;
+
+    /*
+      v149g64 mobile lag polish:
+      Keep blur active, but during rapid mobile burst-scroll quantise blur to
+      half-pixel steps. This reduces CSS filter churn on latest iOS without
+      changing z-axis physics, slide position, opacity logic, or the blur ranges.
+    */
+    const blurForCSS = isMobileBurstScrollInFlight()
+      ? (Math.round(blur * 2) / 2)
+      : blur;
+    card.style.filter = `blur(${blurForCSS.toFixed(isMobileBurstScrollInFlight() ? 1 : 2)}px)`;
   }
 
   function getCurrentSlideTitle() {
