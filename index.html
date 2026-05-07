@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g63 idle settle nearest anchor fix
+Source: v149g62_mobile_burst_title_hide_fix
+Change: idle auto-settle now resolves against all slide anchors instead of stale currentCenteredIndex neighbours.
+Fixes: mobile burst scroll pulling back to old slide instead of closest slide.
+Z-axis physics: unchanged
+Blur: untouched
+Title hide fix retained
+media_nobutton per-card fix retained
+Dropdown system retained
+-->
+<!--
 PaletteKnife v149g62 mobile burst title hide fix
 Source: v149g61_mobile_burst_title_render_gate
 Change: keeps flawless burst-scroll performance but hides stale slide title/left meta during mobile burst movement.
@@ -4743,17 +4754,18 @@ body.is-booting #panelDesc {
         ? getAnchorPositions()
         : PRODUCTS.map((_, index) => -(CONFIG.slideSpacing * index));
 
-      const liveIndex = Math.max(0, Math.min(PRODUCTS.length - 1, currentCenteredIndex));
-      const prevIndex = Math.max(0, liveIndex - 1);
-      const nextIndex = Math.min(PRODUCTS.length - 1, liveIndex + 1);
-
-      const candidateIndexes = Array.from(new Set([prevIndex, liveIndex, nextIndex]));
-
-      let target = anchors[candidateIndexes[0]];
+      /*
+        v149g63 correction:
+        During mobile burst-scroll, currentCenteredIndex may intentionally lag
+        behind the visual camera position while heavy UI updates are deferred.
+        The idle auto-settle routine must therefore resolve against every slide
+        anchor, not only previous/current/next around the old committed index.
+        This preserves the magnetised closest-slide behaviour.
+      */
+      let target = anchors[0];
       let nearestDistance = Math.abs(position - target);
 
-      for (const idx of candidateIndexes) {
-        const candidate = anchors[idx];
+      for (const candidate of anchors) {
         const distance = Math.abs(position - candidate);
         if (distance < nearestDistance) {
           nearestDistance = distance;
