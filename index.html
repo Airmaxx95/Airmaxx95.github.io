@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g65 mobile unsettled centered-update defer
+Source: v149g64_mobile_burst_blur_precision_polish
+Change: mobile heavy centered-slide UI updates defer during any unsettled motion, not only burst-scroll.
+Fixes: one-at-a-time scroll back to first slide lag.
+Z-axis physics: unchanged
+Blur feature: retained
+v149g63 nearest-anchor settle fix retained
+media_nobutton per-card fix retained
+Dropdown system retained
+-->
+<!--
 PaletteKnife v149g64 mobile burst blur precision polish
 Source: v149g63_idle_settle_nearest_anchor_fix
 Change: during rapid mobile burst-scroll, blur CSS value is quantised to half-pixel steps to reduce iOS filter churn.
@@ -4705,16 +4716,28 @@ body.is-booting #panelDesc {
     return unsettled || moving;
   }
 
+  function isMobileMotionUnsettled() {
+    if (!isMobileNavJumpRuntime()) return false;
+    if (mobileNavJumpTargetIndex !== null) return false;
+
+    const nearest = nearestAnchor(position);
+    return (
+      Math.abs(position - nearest) > CONFIG.centerDeadband ||
+      Math.abs(velocity) > 0.12 ||
+      Math.abs(targetVelocity) > 0.12 ||
+      anchorTarget !== null ||
+      returningToStart
+    );
+  }
+
   function shouldRenderTitleThisFrame() {
     /*
-      v149g61 mobile polish:
-      During rapid manual mobile burst-scroll, the slide title is hidden until
-      the motion settles anyway. Avoid running the title visibility/text routine
-      every frame during that burst. This preserves the title behaviour and all
-      z-axis visuals, but removes a fixed-overlay check from the hottest mobile
-      scroll path.
+      v149g65 mobile polish:
+      Keep the title hidden while mobile motion is unsettled, not only during
+      high-speed burst-scroll. This prevents stale title/CTA edge work during
+      slow one-slide transitions back to slide 1.
     */
-    return !isMobileBurstScrollInFlight();
+    return !isMobileMotionUnsettled();
   }
 
   function hideSlideTitleForMobileBurstScroll() {
@@ -6941,16 +6964,18 @@ body.is-booting #panelDesc {
     if (newCentered !== currentCenteredIndex) {
       const isMobileNavJumpActive = mobileNavJumpTargetIndex !== null;
       const shouldReleaseMobileNavJump = isMobileNavJumpSettledOnTarget();
-      const shouldDeferMobileBurstScroll = isMobileBurstScrollInFlight();
+      const shouldDeferMobileCenteredUpdate = isMobileMotionUnsettled();
 
       /*
-        v149g52 mobile burst-scroll optimisation:
-        For rapid manual 1→end→1 swipes, do not run panel / analytics /
-        lightbox / nav-height side effects for every temporary centered slide.
-        Wait until the z-axis settles, then update once. Z-axis motion, blur,
-        spacing and physics are untouched.
+        v149g65 mobile polish:
+        v149g52 deferred heavy centered-slide side effects only during fast
+        burst-scroll. The latest iOS still lagged when moving back to slide 1
+        one-at-a-time because that slower motion could release panel/title/CTA
+        updates before the slide had actually settled. Defer those heavy UI
+        side effects during any unsettled mobile motion, then update once at
+        the nearest magnetised slide.
       */
-      if ((!isMobileNavJumpActive && !shouldDeferMobileBurstScroll) || shouldReleaseMobileNavJump) {
+      if ((!isMobileNavJumpActive && !shouldDeferMobileCenteredUpdate) || shouldReleaseMobileNavJump) {
         const finalCentered = shouldReleaseMobileNavJump ? mobileNavJumpTargetIndex : newCentered;
 
         closeAllLightboxes();
