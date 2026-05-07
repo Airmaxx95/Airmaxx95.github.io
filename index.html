@@ -1,5 +1,14 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g59 mobile media_nobutton live state restore
+Source: v149g58_dropdown_chrome_safari_match
+Change: restores dynamic mobile media_nobutton positioning during scroll while keeping v149g52 heavy centered-update deferral.
+Z-axis: untouched
+Blur: untouched
+Mobile optimisation stack retained
+Dropdown system retained
+-->
+<!--
 PaletteKnife v149g58 dropdown Chrome/Safari visual match
 Source: v149g57_dropdown_text_size_case_fix
 Change: normalises desktop select dimensions/border/arrow so Chrome matches Safari more closely; mobile native picker preserved.
@@ -4628,6 +4637,28 @@ body.is-booting #panelDesc {
     return unsettled || moving;
   }
 
+  let lastLiveMobileNoButtonState = null;
+
+  function syncLiveMobileMediaNoButtonState(liveIndex) {
+    /*
+      v149g59 regression fix:
+      v149g52 deferred heavy panel/render side effects during mobile burst scroll.
+      That was correct for performance, but it also delayed the lightweight
+      media_nobutton body class that controls mobile slide vertical positioning.
+      Restore this lightweight class update during scroll so media_nobutton →
+      for_sale positioning changes dynamically again, without reintroducing the
+      heavy panel/analytics/nav update churn.
+    */
+    if (!isMobileNavJumpRuntime()) return;
+    const product = PRODUCTS[liveIndex];
+    const isNoButton = !!(product && isMediaNoButtonState(product.saleState));
+
+    if (lastLiveMobileNoButtonState === isNoButton) return;
+
+    document.body.classList.toggle("mobile-media-nobutton-active", isNoButton);
+    lastLiveMobileNoButtonState = isNoButton;
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -6434,6 +6465,9 @@ body.is-booting #panelDesc {
         }
 
         document.body.classList.toggle("mobile-media-nobutton-active", mediaNoButton && window.innerWidth <= 768);
+        if (window.innerWidth <= 768) {
+          lastLiveMobileNoButtonState = !!mediaNoButton;
+        }
 
         if (navPanel) {
           navPanel.style.display = showNav ? "flex" : "none";
@@ -6820,6 +6854,8 @@ body.is-booting #panelDesc {
 
     const newCentered = getCenteredIndex();
     if (newCentered !== currentCenteredIndex) {
+      syncLiveMobileMediaNoButtonState(newCentered);
+
       const isMobileNavJumpActive = mobileNavJumpTargetIndex !== null;
       const shouldReleaseMobileNavJump = isMobileNavJumpSettledOnTarget();
       const shouldDeferMobileBurstScroll = isMobileBurstScrollInFlight();
