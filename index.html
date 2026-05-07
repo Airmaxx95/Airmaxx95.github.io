@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g56 native variant dropdowns
+Source: v149g55_buttons_match_slide_title_text
+Change: panelVariantSection option-chip buttons replaced with native select dropdowns for size/colour/variant choices.
+-->
+<!--
 PaletteKnife v149g55 buttons match slideTitleText
 Source: v149g54_cart_close_button_style_fix
 Change: Collection/Cart/Close buttons now use exact same font-size as .slide-title-text
@@ -4090,6 +4095,45 @@ body.is-booting #panelDesc {
   color: black !important;
 }
 
+
+/* =========================================================
+   v149g56 NATIVE VARIANT DROPDOWNS
+   Replaces option-chip buttons in panelVariantSection with native select controls.
+   ========================================================= */
+.variant-dropdown-wrap {
+  width: 100%;
+  position: relative;
+  margin: 0 0 10px 0;
+}
+
+.variant-dropdown {
+  width: 100%;
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background: transparent;
+  color: black;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: clamp(14px, 1.4vw, 20px);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.variant-dropdown:focus {
+  outline: none;
+}
+
+.variant-dropdown option {
+  color: black;
+  background: white;
+}
+
+.variant-dropdown option:disabled {
+  color: rgba(0,0,0,0.35);
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -5874,72 +5918,86 @@ body.is-booting #panelDesc {
 
     const groups = [];
 
-    if (mode === "size" && typeof data === "object") {
-      const availableSizes = new Set(getAvailableSizeKeys(product).map((key) => normalizeOptionKey(key)));
-      groups.push(`
+    function optionText(type, key, qty) {
+      if (type !== "size") return String(key || "");
+      const count = Number(qty || 0);
+      if (count > 0) {
+        return `${key} - Only ${count} remaining`;
+      }
+      return String(key || "");
+    }
+
+    function buildNativeSelect(type, label, keys, activeValue, placeholder, quantityLookup) {
+      const cleanKeys = (keys || []).filter((key) => String(key || "").trim() !== "");
+      if (!cleanKeys.length) return "";
+
+      return `
         <div class="panel-section">
-          <span class="panel-label">Size</span>
-          <div class="option-group">
-            ${Object.keys(data).map((key) => {
-              const active = normalizeOptionKey(selection.size) === normalizeOptionKey(key);
-              const soldOut = Number(data[key] || 0) <= 0;
-              return `<button class="option-chip ${active ? 'is-active' : ''} ${soldOut ? 'is-soldout' : ''}".trim() type="button" data-option-type="size" data-option-value="${escapeHtml(key)}">${escapeHtml(key)}</button>`;
-            }).join("")}
+          <span class="panel-label">${escapeHtml(label)}</span>
+          <div class="variant-dropdown-wrap">
+            <select class="variant-dropdown" data-option-type="${escapeHtml(type)}" aria-label="${escapeHtml(label)}">
+              <option value="">${escapeHtml(placeholder)}</option>
+              ${cleanKeys.map((key) => {
+                const active = normalizeOptionKey(activeValue) === normalizeOptionKey(key);
+                const qty = quantityLookup ? quantityLookup(key) : 1;
+                const soldOut = type === "size" && Number(qty || 0) <= 0;
+                return `<option value="${escapeHtml(key)}" ${active ? "selected" : ""} ${soldOut ? "disabled" : ""}>${escapeHtml(optionText(type, key, qty))}</option>`;
+              }).join("")}
+            </select>
           </div>
         </div>
-      `);
+      `;
+    }
+
+    if (mode === "size" && typeof data === "object") {
+      groups.push(buildNativeSelect(
+        "size",
+        "Size",
+        Object.keys(data),
+        selection.size,
+        "Select a size",
+        (key) => data[key]
+      ));
     }
 
     if (mode === "colour" && typeof data === "object") {
-      const availableColours = new Set(getAvailableColourKeys(product).map((key) => normalizeOptionKey(key)));
-      groups.push(`
-        <div class="panel-section">
-          <span class="panel-label">Colour</span>
-          <div class="option-group">
-            ${Object.keys(data).map((key) => {
-              const active = normalizeOptionKey(selection.colour) === normalizeOptionKey(key);
-              const soldOut = Number(data[key] || 0) <= 0;
-              return `<button class="option-chip ${active ? 'is-active' : ''} ${soldOut ? 'is-soldout' : ''}".trim() type="button" data-option-type="colour" data-option-value="${escapeHtml(key)}">${escapeHtml(key)}</button>`;
-            }).join("")}
-          </div>
-        </div>
-      `);
+      groups.push(buildNativeSelect(
+        "colour",
+        "Colour",
+        Object.keys(data),
+        selection.colour,
+        "Select a colour",
+        (key) => data[key]
+      ));
     }
 
     if (mode === "colour_size" && typeof data === "object") {
       const availableColourKeys = getAvailableColourKeys(product);
       if (!availableColourKeys.length) return groups.join("");
-      const availableColours = new Set(availableColourKeys.map((key) => normalizeOptionKey(key)));
       const firstAvailableColour = availableColourKeys[0] || Object.keys(data)[0];
       const activeColour = getMatchingKey(data, selection.colour) || firstAvailableColour;
-      const availableSizes = new Set(getAvailableSizeKeys(product, activeColour).map((key) => normalizeOptionKey(key)));
 
-      groups.push(`
-        <div class="panel-section">
-          <span class="panel-label">Colours</span>
-          <div class="option-group">
-            ${Object.keys(data).map((key) => {
-              const active = normalizeOptionKey(selection.colour) === normalizeOptionKey(key);
-              const soldOut = !data[key] || typeof data[key] !== "object" || !Object.values(data[key]).some((value) => Number(value || 0) > 0);
-              return `<button class="option-chip ${active ? 'is-active' : ''} ${soldOut ? 'is-soldout' : ''}".trim() type="button" data-option-type="colour" data-option-value="${escapeHtml(key)}">${escapeHtml(key)}</button>`;
-            }).join("")}
-          </div>
-        </div>
-      `);
+      groups.push(buildNativeSelect(
+        "colour",
+        "Colour",
+        Object.keys(data),
+        selection.colour,
+        "Select a colour",
+        (key) => {
+          const sizeMap = data[key];
+          return sizeMap && typeof sizeMap === "object" && Object.values(sizeMap).some((value) => Number(value || 0) > 0) ? 1 : 0;
+        }
+      ));
 
       if (activeColour && data[activeColour] && typeof data[activeColour] === "object") {
-        groups.push(`
-          <div class="panel-section">
-            <span class="panel-label">Sizes</span>
-            <div class="option-group">
-              ${Object.keys(data[activeColour]).map((key) => {
-                const active = normalizeOptionKey(selection.size) === normalizeOptionKey(key);
-                const soldOut = Number(data[activeColour][key] || 0) <= 0;
-                return `<button class="option-chip ${active ? 'is-active' : ''} ${soldOut ? 'is-soldout' : ''}".trim() type="button" data-option-type="size" data-option-value="${escapeHtml(key)}">${escapeHtml(key)}</button>`;
-              }).join("")}
-            </div>
-          </div>
-        `);
+        groups.push(buildNativeSelect(
+          "size",
+          "Size",
+          Object.keys(data[activeColour]),
+          selection.size,
+          "Select a size",
+          (key) => data[activeColour][key]
+        ));
       }
     }
 
@@ -5991,36 +6049,41 @@ body.is-booting #panelDesc {
   function bindPanelOptionInteractions(product) {
     if (!panelVariantSection || !product) return;
 
-    panelVariantSection.querySelectorAll('[data-option-type="colour"]').forEach((button) => {
-      button.addEventListener('click', () => {
+    panelVariantSection.querySelectorAll("select.variant-dropdown").forEach((select) => {
+      select.addEventListener("change", () => {
         const selection = getProductSelection(product);
-        const value = button.getAttribute('data-option-value') || '';
-        selection.colour = value;
-        if (String(product.variantMode || "").toLowerCase().trim() === "colour_size" && selection.size) {
-          const colourKey = getMatchingKey(product.variantStock, value);
-          const sizeMap = colourKey ? product.variantStock[colourKey] : null;
-          const sizeStillExists = !!(sizeMap && typeof sizeMap === "object" && Object.keys(sizeMap).some((key) => normalizeOptionKey(key) === normalizeOptionKey(selection.size)));
-          if (!sizeStillExists) {
-            selection.size = null;
+        const optionType = select.getAttribute("data-option-type") || "";
+        const value = select.value || "";
+
+        if (optionType === "colour") {
+          selection.colour = value || null;
+
+          if (String(product.variantMode || "").toLowerCase().trim() === "colour_size" && selection.size) {
+            const colourKey = getMatchingKey(product.variantStock, value);
+            const sizeMap = colourKey ? product.variantStock[colourKey] : null;
+            const sizeStillExists = !!(sizeMap && typeof sizeMap === "object" && Object.keys(sizeMap).some((key) => normalizeOptionKey(key) === normalizeOptionKey(selection.size)));
+            if (!sizeStillExists) {
+              selection.size = null;
+            }
           }
-        }
-        setPanelValidationMessage("");
-        const lookupKey = normalizeOptionKey(value);
-        const targetIndex = product.mediaColourLookup ? product.mediaColourLookup[lookupKey] : undefined;
-        if (targetIndex === undefined) {
-          renderPanel(currentCenteredIndex);
+
+          setPanelValidationMessage("");
+          const lookupKey = normalizeOptionKey(value);
+          const targetIndex = product.mediaColourLookup ? product.mediaColourLookup[lookupKey] : undefined;
+          if (targetIndex === undefined) {
+            renderPanel(currentCenteredIndex);
+            return;
+          }
+
+          jumpCurrentProductToColourMedia(product, value);
           return;
         }
-        jumpCurrentProductToColourMedia(product, value);
-      });
-    });
 
-    panelVariantSection.querySelectorAll('[data-option-type="size"]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const selection = getProductSelection(product);
-        selection.size = button.getAttribute('data-option-value') || '';
-        setPanelValidationMessage("");
-        renderPanel(currentCenteredIndex);
+        if (optionType === "size") {
+          selection.size = value || null;
+          setPanelValidationMessage("");
+          renderPanel(currentCenteredIndex);
+        }
       });
     });
   }
