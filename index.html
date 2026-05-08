@@ -1,5 +1,17 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g79 mobile backward release impulse fix
+Source: v149g78_mobile_title_post_settle_only
+Change: softens only mobile backward touch-release impulse to fix singular backward stutter like 7→6 or 3→2.
+Preserved:
+- blur core feature untouched
+- title post-settle-only fix retained
+- z-axis baseline preserved except backward release impulse scaling
+- burst scroll retained
+- dropdown system retained
+- media_nobutton per-card fix retained
+-->
+<!--
 PaletteKnife v149g78 mobile title post-settle only
 Source: approved v149g60_mobile_media_nobutton_per_card_position
 Change:
@@ -7301,8 +7313,21 @@ body.is-booting #panelDesc {
     }
 
     if (touchGestureMoved) {
-      velocity += touchGestureLastDy * getTouchReleaseBoost();
-      targetVelocity += touchGestureTotalDy * 0.118;
+      /*
+        v149g79:
+        Burst scroll is fine. The remaining stutter is singular backward motion
+        such as 7→6 or 3→2. On touch release, backward gestures were getting the
+        same release impulse as forward gestures, which can push the camera just
+        past the previous anchor and make iOS visibly correct/magnetise back.
+        Keep z-axis physics intact, but soften only the mobile backward release
+        impulse so one-step backwards locks cleanly.
+      */
+      const movingBackward = touchGestureTotalDy > 0;
+      const releaseScale = movingBackward ? 0.62 : 1;
+      const carryScale = movingBackward ? 0.68 : 1;
+
+      velocity += touchGestureLastDy * getTouchReleaseBoost() * releaseScale;
+      targetVelocity += touchGestureTotalDy * 0.118 * carryScale;
       markRecentTouchScroll();
       scheduleIdleAutoSettle();
       start();
