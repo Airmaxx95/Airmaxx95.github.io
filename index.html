@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g74 recovery baseline
-Source: approved v149g60_mobile_media_nobutton_per_card_position
-Purpose: discard failed optimisation chain v149g61-v149g73.
-Restores:
-- approved dropdown system from v149g58
-- approved media_nobutton per-card mobile positioning from v149g60
-- approved mobile optimisation stack up to v149g60
-- desktop Safari/Chrome behaviour before later experimental patches
+PaletteKnife v149g75 recovery: v61 flawless scroll + CSS title suppression
+Source: v149g61_mobile_burst_title_render_gate
+Why: v149g61 was reported as flawless scrolling; only stale title visibility was wrong.
+Changes:
+- CSS class suppresses title/meta during mobile burst motion.
+- No per-frame title DOM writes during motion.
+- Idle auto-settle resolves against all anchors to prevent pullback to stale index.
 Discarded:
-- v149g61 title render gate
-- v149g62 title hide fix
-- v149g63-v149g73 mobile stutter experiments
+- v149g62-v149g73 experimental chain.
+Z-axis physics: unchanged from v149g61/v149g64 lineage.
+Blur: retained.
+media_nobutton per-card fix: retained.
+Dropdown system: retained.
+-->
+<!--
+PaletteKnife v149g61 mobile burst title render gate
+Source: v149g60_mobile_media_nobutton_per_card_position
+Change: during rapid mobile burst-scroll, skip per-frame slide-title render checks until motion settles.
+Z-axis: untouched
+Blur: untouched
+media_nobutton per-card fix retained
+Dropdown system retained
+Mobile optimisation stack retained
 -->
 <!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
@@ -4253,6 +4264,20 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g75 MOBILE TITLE CSS SUPPRESSION
+   Built from v149g61, the last reported flawless-scroll build.
+   During mobile motion, hide stale title/meta by CSS class instead of per-frame
+   title DOM rendering or opacity writes.
+   ========================================================= */
+@media (max-width: 900px), (pointer: coarse), (hover: none) {
+  body.mobile-zaxis-title-suppressed .slide-title-display,
+  body.mobile-zaxis-title-suppressed .left-meta {
+    opacity: 0 !important;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4679,6 +4704,33 @@ body.is-booting #panelDesc {
     return unsettled || moving;
   }
 
+  let lastMobileTitleSuppressedState = null;
+
+  function shouldRenderTitleThisFrame() {
+    /*
+      v149g61 mobile polish retained:
+      During rapid manual mobile burst-scroll, the slide title is hidden until
+      the motion settles anyway. Avoid running the title visibility/text routine
+      every frame during that burst.
+    */
+    return !isMobileBurstScrollInFlight();
+  }
+
+  function setMobileTitleSuppressed(isSuppressed) {
+    /*
+      v149g75 correction:
+      v149g61 scrolled flawlessly but left stale titles visible because title
+      rendering was skipped during burst-scroll. Do not reintroduce per-frame
+      opacity writes. Toggle one body class only when the suppression state
+      changes, and let CSS hide the title/meta during motion.
+    */
+    if (!isMobileNavJumpRuntime()) return;
+    const nextState = !!isSuppressed;
+    if (lastMobileTitleSuppressedState === nextState) return;
+    document.body.classList.toggle("mobile-zaxis-title-suppressed", nextState);
+    lastMobileTitleSuppressedState = nextState;
+  }
+
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -4707,17 +4759,17 @@ body.is-booting #panelDesc {
         ? getAnchorPositions()
         : PRODUCTS.map((_, index) => -(CONFIG.slideSpacing * index));
 
-      const liveIndex = Math.max(0, Math.min(PRODUCTS.length - 1, currentCenteredIndex));
-      const prevIndex = Math.max(0, liveIndex - 1);
-      const nextIndex = Math.min(PRODUCTS.length - 1, liveIndex + 1);
-
-      const candidateIndexes = Array.from(new Set([prevIndex, liveIndex, nextIndex]));
-
-      let target = anchors[candidateIndexes[0]];
+      /*
+        v149g75 / v149g63 correction:
+        During deferred mobile scroll, currentCenteredIndex can intentionally
+        lag behind the visual camera position. Idle auto-settle must therefore
+        resolve against every slide anchor, not stale neighbours around the old
+        committed index.
+      */
+      let target = anchors[0];
       let nearestDistance = Math.abs(position - target);
 
-      for (const idx of candidateIndexes) {
-        const candidate = anchors[idx];
+      for (const candidate of anchors) {
         const distance = Math.abs(position - candidate);
         if (distance < nearestDistance) {
           nearestDistance = distance;
@@ -6907,7 +6959,12 @@ body.is-booting #panelDesc {
       }
     }
 
-    renderSlideTitle();
+    if (shouldRenderTitleThisFrame()) {
+      setMobileTitleSuppressed(false);
+      renderSlideTitle();
+    } else {
+      setMobileTitleSuppressed(true);
+    }
   }
 
   function render() {
