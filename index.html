@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g70 mobile panel render idle callback
+PaletteKnife v149g71 mobile singular WebGL environment rate-limit
 Source: v149g64_mobile_burst_blur_precision_polish
-Change: mobile singular slide changes commit magnetised state immediately, but defer heavy panel/cart/nav/analytics work to idle callback.
-Reason: fixes one-at-a-time mobile stutter without z-axis changes or fluidity-killing motion timers.
+Change: mobile live CubeCamera/environment capture updates less frequently during low/medium singular scroll movement.
+Reason: targets singular one-slide mobile stutter without z-axis, panel timing, or culling hacks.
 Z-axis physics: unchanged
 Visible blur: retained
 v149g63 nearest-anchor settle fix retained
 v149g64 blur precision polish retained
 media_nobutton per-card fix retained
 Dropdown system retained
-v149g65-v149g69 discarded
+v149g65-v149g70 discarded
 -->
 <!--
 PaletteKnife v149g64 mobile burst blur precision polish
@@ -6939,66 +6939,6 @@ body.is-booting #panelDesc {
     }
   }
 
-  let pendingMobilePanelWorkToken = null;
-  let pendingMobilePanelWorkIndex = null;
-
-  function runCenteredPanelWork(index) {
-    setPanelValidationMessage("");
-    renderPanel(index);
-
-    const currentProduct = PRODUCTS[index];
-    trackViewItem(currentProduct, index, "centered_change");
-    const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
-    if (navPanel && navPanel.classList.contains("is-open")) {
-      if (hideNavForCurrent) {
-        setNavPanelOpen(false);
-      } else {
-        updateNavPanelMaxHeight();
-      }
-    }
-  }
-
-  function scheduleCenteredPanelWork(index) {
-    /*
-      v149g70 mobile single-step stutter fix:
-      Keep the visual/magnetised state immediate, but move expensive panel/cart/
-      nav/analytics work out of the same animation frame as z-axis settlement.
-      This is a one-shot idle handoff, not a motion timer. It preserves the
-      fluid feel while removing the stutter caused by forced DOM/layout work
-      during singular mobile slide changes.
-    */
-    if (!isMobileNavJumpRuntime()) {
-      runCenteredPanelWork(index);
-      return;
-    }
-
-    pendingMobilePanelWorkIndex = index;
-
-    if (pendingMobilePanelWorkToken !== null) {
-      if (window.cancelIdleCallback && typeof pendingMobilePanelWorkToken === "number") {
-        try { window.cancelIdleCallback(pendingMobilePanelWorkToken); } catch (error) {}
-      } else {
-        window.clearTimeout(pendingMobilePanelWorkToken);
-      }
-      pendingMobilePanelWorkToken = null;
-    }
-
-    const callback = () => {
-      pendingMobilePanelWorkToken = null;
-      const targetIndex = pendingMobilePanelWorkIndex;
-      pendingMobilePanelWorkIndex = null;
-
-      if (targetIndex === null || targetIndex !== currentCenteredIndex) return;
-      runCenteredPanelWork(targetIndex);
-    };
-
-    if (window.requestIdleCallback) {
-      pendingMobilePanelWorkToken = window.requestIdleCallback(callback, { timeout: 120 });
-    } else {
-      pendingMobilePanelWorkToken = window.setTimeout(callback, 32);
-    }
-  }
-
   function renderAll() {
     const introOffset = getIntroOffset();
 
@@ -7028,7 +6968,19 @@ body.is-booting #panelDesc {
 
         closeAllLightboxes();
         currentCenteredIndex = finalCentered;
-        scheduleCenteredPanelWork(currentCenteredIndex);
+        setPanelValidationMessage("");
+        renderPanel(currentCenteredIndex);
+
+        const currentProduct = PRODUCTS[currentCenteredIndex];
+        trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
+        const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
+        if (navPanel && navPanel.classList.contains("is-open")) {
+          if (hideNavForCurrent) {
+            setNavPanelOpen(false);
+          } else {
+            updateNavPanelMaxHeight();
+          }
+        }
 
         if (shouldReleaseMobileNavJump) {
           mobileNavJumpTargetIndex = null;
@@ -7882,7 +7834,37 @@ document.addEventListener('DOMContentLoaded', function () {
     phase: 0,
     velocity: 0,
     lastNow: 0,
-    clockPhase: 0
+    clockPhase: 0,
+    envFrame: 0
+  };
+
+  function shouldUpdateMobileLiveEnvironment(energy) {
+    /*
+      v149g71:
+      Singular mobile scroll stutter survived panel deferral and render-window
+      tests, which points at the WebGL environment capture path. The CubeCamera
+      is very expensive and was updating every frame even for tiny one-slide
+      moves. On mobile only, keep the GLB visible and reactive, but reduce the
+      live environment capture frequency during low/medium movement. This is
+      smoother than v149g49 because it targets singular scroll, not high-energy
+      burst scroll where frame skipping felt uneven.
+    */
+    const isMobileRuntime = !!(
+      window.matchMedia &&
+      (
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(hover: none)").matches ||
+        window.innerWidth <= 900
+      )
+    );
+
+    if (!isMobileRuntime) return true;
+
+    liveEnvironmentMotion.envFrame = (liveEnvironmentMotion.envFrame + 1) % 60;
+
+    if (energy > 1.05) return true;
+    if (energy > 0.42) return (liveEnvironmentMotion.envFrame % 2) === 0;
+    return (liveEnvironmentMotion.envFrame % 3) === 0;
   };
   let loaded = false;
   let firstFrameRendered = false;
@@ -8249,8 +8231,10 @@ document.addEventListener('DOMContentLoaded', function () {
       liveEnvRig.rotation.y = p;
       liveEnvRig.rotation.z = 0;
 
-      liveEnvCubeCamera.update(renderer, liveEnvScene);
-      scene.environment = liveEnvTarget.texture;
+      if (shouldUpdateMobileLiveEnvironment(energy)) {
+        liveEnvCubeCamera.update(renderer, liveEnvScene);
+        scene.environment = liveEnvTarget.texture;
+      }
     }
 
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
