@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g66 mobile post-settle UI defer
+PaletteKnife v149g67 mobile idle-commit heavy UI fix
 Source: v149g65_mobile_unsettled_center_update_defer
-Change: mobile centered-slide heavy UI side effects run one frame after magnetised lock.
-Fixes: one-step backward scroll lag such as 5 → 4.
+Change: mobile commits nearest slide immediately, but heavy panel/cart/nav/meta side effects run only after a short stable idle window.
+Fixes: backward one-slide lag without disturbing burst-scroll or magnetised closest-slide behaviour.
 Z-axis physics: unchanged
 Blur feature: retained
-v149g63/v149g65 fixes retained
+v149g63 nearest-anchor settle fix retained
+v149g64 blur precision polish retained
 media_nobutton per-card fix retained
 Dropdown system retained
+v149g66 discarded as too weak
 -->
 <!--
 PaletteKnife v149g65 mobile unsettled centered-update defer
@@ -6960,7 +6962,19 @@ body.is-booting #panelDesc {
     }
   }
 
-  let pendingMobileCenteredUiFrame = null;
+  let pendingMobileHeavyUiTimer = null;
+  let pendingMobileHeavyUiIndex = null;
+
+  function isMobileMotionStill() {
+    const nearest = nearestAnchor(position);
+    return (
+      Math.abs(position - nearest) <= CONFIG.centerDeadband &&
+      Math.abs(velocity) <= 0.12 &&
+      Math.abs(targetVelocity) <= 0.12 &&
+      anchorTarget === null &&
+      !returningToStart
+    );
+  }
 
   function applyCenteredSlideSideEffects(index) {
     closeAllLightboxes();
@@ -6979,28 +6993,49 @@ body.is-booting #panelDesc {
     }
   }
 
+  function cancelPendingMobileHeavyUi() {
+    if (pendingMobileHeavyUiTimer !== null) {
+      window.clearTimeout(pendingMobileHeavyUiTimer);
+      pendingMobileHeavyUiTimer = null;
+    }
+    pendingMobileHeavyUiIndex = null;
+  }
+
   function scheduleCenteredSlideSideEffects(index) {
     /*
-      v149g66 mobile polish:
-      On latest iOS, one-step backward settling can stutter when panel/cart/nav/
-      lightbox side effects run on the exact same frame as the magnetised lock.
-      Commit currentCenteredIndex immediately so magnetisation/title state stays
-      correct, then run the heavy UI updates on the next animation frame.
+      v149g67 hard mobile settle fix:
+      Latest iOS stutters when heavy panel/cart/nav/meta rebuilds happen on the
+      same frame as the magnetised slide lock, especially moving backwards one
+      item. Commit currentCenteredIndex immediately so nearest-slide magnetism,
+      media_nobutton state and title logic remain correct. Then run heavy UI
+      work only after the motion has remained still for a short idle window.
     */
     if (!isMobileNavJumpRuntime()) {
       applyCenteredSlideSideEffects(index);
       return;
     }
 
-    if (pendingMobileCenteredUiFrame !== null) {
-      window.cancelAnimationFrame(pendingMobileCenteredUiFrame);
-      pendingMobileCenteredUiFrame = null;
+    pendingMobileHeavyUiIndex = index;
+
+    if (pendingMobileHeavyUiTimer !== null) {
+      window.clearTimeout(pendingMobileHeavyUiTimer);
+      pendingMobileHeavyUiTimer = null;
     }
 
-    pendingMobileCenteredUiFrame = window.requestAnimationFrame(() => {
-      pendingMobileCenteredUiFrame = null;
-      applyCenteredSlideSideEffects(index);
-    });
+    pendingMobileHeavyUiTimer = window.setTimeout(() => {
+      pendingMobileHeavyUiTimer = null;
+      const targetIndex = pendingMobileHeavyUiIndex;
+      pendingMobileHeavyUiIndex = null;
+
+      if (targetIndex === null || targetIndex !== currentCenteredIndex) return;
+
+      if (!isMobileMotionStill()) {
+        scheduleCenteredSlideSideEffects(targetIndex);
+        return;
+      }
+
+      applyCenteredSlideSideEffects(targetIndex);
+    }, 90);
   }
 
   function renderAll() {
@@ -7146,6 +7181,9 @@ body.is-booting #panelDesc {
   }
 
   function start() {
+    if (isMobileNavJumpRuntime() && pendingMobileHeavyUiIndex !== null && !isMobileMotionStill()) {
+      cancelPendingMobileHeavyUi();
+    }
     if (raf === null) raf = requestAnimationFrame(render);
   }
 
