@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g76 mobile scroll freeze WebGL header
+PaletteKnife v149g77 mobile stutter binary diagnostic
 Source: approved v149g60_mobile_media_nobutton_per_card_position
-Purpose: hard mobile performance fix after failed v149g61-v149g75 chain.
-Change: on mobile only, GLB/WebGL header rendering freezes during active z-axis movement and resumes after motion calms.
-Preserved:
-- z-axis physics untouched
-- blur untouched
-- dropdown system retained
-- media_nobutton per-card fix retained
-- desktop Safari/Chrome untouched
-Discarded:
-- all v149g61-v149g75 experimental scroll patches
+Default behaviour: unchanged from v149g60.
+Purpose: prove the mobile stutter source before any more fixes.
+Test URLs:
+- ?pk_no_webgl=1
+- ?pk_no_blur=1
+- ?pk_no_panel=1
+- ?pk_no_title=1
+- combinations allowed, e.g. ?pk_no_webgl=1&pk_no_blur=1
 -->
 <!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
@@ -4253,6 +4251,41 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g77 DIAGNOSTIC VISIBILITY SWITCHES
+   Default unaffected. Activated only by JS-added body classes.
+   ========================================================= */
+body.pk-diag-no-panel .panel,
+body.pk-diag-no-panel .panel-actions-mobile-detached,
+body.pk-diag-no-panel .cart-toggle,
+body.pk-diag-no-panel .cart-drawer,
+body.pk-diag-no-panel .nav-panel {
+  display: none !important;
+}
+
+body.pk-diag-no-title .slide-title-display,
+body.pk-diag-no-title .left-meta {
+  display: none !important;
+}
+
+.pk-diagnostic-hud {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  z-index: 999999;
+  padding: 6px 8px;
+  font: 11px/1.25 monospace;
+  color: #000;
+  background: rgba(255,255,255,0.78);
+  pointer-events: none;
+  display: none;
+}
+
+body.pk-diag-active .pk-diagnostic-hud {
+  display: block;
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -4280,6 +4313,27 @@ body.is-booting #panelDesc {
     }
   ]
 }
+</script>
+
+
+<script>
+/* =========================================================
+   v149g77 DIAGNOSTIC FLAGS — default behaviour unchanged
+   URL flags:
+   ?pk_no_webgl=1   disables GLB/WebGL header
+   ?pk_no_blur=1    disables slide CSS blur only
+   ?pk_no_panel=1   hides mobile product panel/CTA/cart/nav overlays
+   ?pk_no_title=1   hides title/meta overlays
+   ========================================================= */
+window.PK_DIAG = (function () {
+  var q = new URLSearchParams(window.location.search);
+  return {
+    noWebGL: q.get("pk_no_webgl") === "1",
+    noBlur: q.get("pk_no_blur") === "1",
+    noPanel: q.get("pk_no_panel") === "1",
+    noTitle: q.get("pk_no_title") === "1"
+  };
+})();
 </script>
 
 </head>
@@ -6783,7 +6837,7 @@ body.is-booting #panelDesc {
 
     card.style.transform = `translate(-50%, -50%) translateZ(${effectiveZ}px) scale(${scale.toFixed(4)})`;
     card.style.opacity = opacity.toFixed(4);
-    card.style.filter = `blur(${blur.toFixed(2)}px)`;
+    card.style.filter = (window.PK_DIAG && window.PK_DIAG.noBlur) ? "blur(0px)" : `blur(${blur.toFixed(2)}px)`;
   }
 
   function getCurrentSlideTitle() {
@@ -7701,6 +7755,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function canUseWebGL() {
+    if (window.PK_DIAG && window.PK_DIAG.noWebGL) return { ok: false, reason: "diagnostic_no_webgl" };
     if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
     /* v149g46b: mobile WebGL/GLB header visible by request; no mobile/touch hard-disable here. */
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
@@ -7756,36 +7811,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const isMobileHeaderWebGL = isTouchOrMobileHeader();
 
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
-  const reactive = {
-    scrollEnergy: 0,
-    lastPosition: 0,
-    syntheticPhase: 0,
-    velocityMemory: 0,
-    lastMotionAt: 0
-  };
-
-  function isMobileHeaderRuntime() {
-    return !!(
-      window.matchMedia &&
-      (
-        window.matchMedia("(pointer: coarse)").matches ||
-        window.matchMedia("(hover: none)").matches ||
-        window.innerWidth <= 900
-      )
-    );
-  }
-
-  function shouldFreezeMobileHeaderRender(now) {
-    /*
-      v149g76:
-      Approved recovery source is v149g60. Stop modifying the z-axis.
-      On mobile only, remove the WebGL header/CubeCamera render work from the
-      scroll hot path. The GLB remains visible, but its renderer freezes during
-      active slide movement and resumes immediately after the motion calms.
-    */
-    if (!isMobileHeaderRuntime()) return false;
-    return (now - reactive.lastMotionAt) < 140;
-  }
+  const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
 
   function isSafariDesktop() {
     const ua = navigator.userAgent || "";
@@ -8071,14 +8097,6 @@ document.addEventListener('DOMContentLoaded', function () {
     reactive.lastPosition = nextPosition;
     reactive.velocityMemory = reactive.velocityMemory * 0.80 + rawVelocity * 0.20;
     reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.42, delta * 0.013));
-
-    if (
-      Math.abs(zaxis.velocity) > 0.035 ||
-      Math.abs(zaxis.targetVelocity) > 0.035 ||
-      delta > 0.05
-    ) {
-      reactive.lastMotionAt = performance.now();
-    }
   }, { passive: true });
 
   window.addEventListener("wheel", function (event) {
@@ -8105,10 +8123,6 @@ document.addEventListener('DOMContentLoaded', function () {
   function animate(now) {
     requestAnimationFrame(animate);
     if (!renderer || !scene || !camera || !logoGroup) return;
-
-    if (shouldFreezeMobileHeaderRender(now)) {
-      return;
-    }
 
     reactive.scrollEnergy *= 0.925;
     reactive.velocityMemory *= 0.91;
@@ -8192,6 +8206,42 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, 10000);
 })();
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (!window.PK_DIAG) return;
+  var active = window.PK_DIAG.noWebGL || window.PK_DIAG.noBlur || window.PK_DIAG.noPanel || window.PK_DIAG.noTitle;
+  document.body.classList.toggle("pk-diag-active", active);
+  document.body.classList.toggle("pk-diag-no-panel", !!window.PK_DIAG.noPanel);
+  document.body.classList.toggle("pk-diag-no-title", !!window.PK_DIAG.noTitle);
+
+  var hud = document.createElement("div");
+  hud.className = "pk-diagnostic-hud";
+  hud.id = "pkDiagnosticHud";
+  hud.textContent = "PK diagnostic";
+  document.body.appendChild(hud);
+
+  var last = performance.now();
+  var worst = 0;
+  var avg = 16.7;
+  function tick(now) {
+    var dt = now - last;
+    last = now;
+    worst = Math.max(worst * 0.98, dt);
+    avg = avg * 0.92 + dt * 0.08;
+    hud.textContent =
+      "PK diag\n" +
+      "avg " + avg.toFixed(1) + "ms / worst " + worst.toFixed(1) + "ms\n" +
+      "webgl " + (window.PK_DIAG.noWebGL ? "OFF" : "ON") + "\n" +
+      "blur " + (window.PK_DIAG.noBlur ? "OFF" : "ON") + "\n" +
+      "panel " + (window.PK_DIAG.noPanel ? "OFF" : "ON") + "\n" +
+      "title " + (window.PK_DIAG.noTitle ? "OFF" : "ON");
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+});
 </script>
 
 </body>
