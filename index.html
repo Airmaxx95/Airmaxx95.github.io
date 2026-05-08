@@ -1,56 +1,17 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g73 mobile touchmove control fix
-Source: v149g64_mobile_burst_blur_precision_polish
-Change: z-axis touchmove is now passive:false with preventDefault, and mobile scene declares touch-action:none / overscroll-behavior:none.
-Reason: prevents latest iOS native page scroll/overscroll from fighting the custom z-axis engine during slow singular backward gestures.
-Z-axis physics: unchanged
-Visible blur: retained
-v149g63 nearest-anchor settle fix retained
-v149g64 blur precision polish retained
-media_nobutton per-card fix retained
-Dropdown system retained
-v149g65-v149g72 discarded
--->
-<!--
-PaletteKnife v149g64 mobile burst blur precision polish
-Source: v149g63_idle_settle_nearest_anchor_fix
-Change: during rapid mobile burst-scroll, blur CSS value is quantised to half-pixel steps to reduce iOS filter churn.
-Function from v149g63 retained.
-Z-axis physics: unchanged
-Blur feature: retained
-Dropdown system: retained
-media_nobutton per-card fix: retained
--->
-<!--
-PaletteKnife v149g63 idle settle nearest anchor fix
-Source: v149g62_mobile_burst_title_hide_fix
-Change: idle auto-settle now resolves against all slide anchors instead of stale currentCenteredIndex neighbours.
-Fixes: mobile burst scroll pulling back to old slide instead of closest slide.
-Z-axis physics: unchanged
-Blur: untouched
-Title hide fix retained
-media_nobutton per-card fix retained
-Dropdown system retained
--->
-<!--
-PaletteKnife v149g62 mobile burst title hide fix
-Source: v149g61_mobile_burst_title_render_gate
-Change: keeps flawless burst-scroll performance but hides stale slide title/left meta during mobile burst movement.
-Z-axis: untouched
-Blur: untouched
-media_nobutton per-card fix retained
-Dropdown system retained
--->
-<!--
-PaletteKnife v149g61 mobile burst title render gate
-Source: v149g60_mobile_media_nobutton_per_card_position
-Change: during rapid mobile burst-scroll, skip per-frame slide-title render checks until motion settles.
-Z-axis: untouched
-Blur: untouched
-media_nobutton per-card fix retained
-Dropdown system retained
-Mobile optimisation stack retained
+PaletteKnife v149g74 recovery baseline
+Source: approved v149g60_mobile_media_nobutton_per_card_position
+Purpose: discard failed optimisation chain v149g61-v149g73.
+Restores:
+- approved dropdown system from v149g58
+- approved media_nobutton per-card mobile positioning from v149g60
+- approved mobile optimisation stack up to v149g60
+- desktop Safari/Chrome behaviour before later experimental patches
+Discarded:
+- v149g61 title render gate
+- v149g62 title hide fix
+- v149g63-v149g73 mobile stutter experiments
 -->
 <!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
@@ -4292,32 +4253,6 @@ body.is-booting #panelDesc {
   }
 }
 
-
-/* =========================================================
-   v149g73 MOBILE TOUCHMOVE CONTROL FIX
-   Prevent iOS native page-scroll/overscroll from fighting the z-axis engine.
-   ========================================================= */
-@media (max-width: 768px), (pointer: coarse), (hover: none) {
-  html,
-  body,
-  .scene {
-    overscroll-behavior: none;
-  }
-
-  .scene {
-    touch-action: none;
-  }
-
-  .footer-terms-panel,
-  .footer-about-panel,
-  .cart-drawer-body,
-  .nav-grid,
-  .panel {
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
 </style>
 
 <script type="application/ld+json">
@@ -4744,37 +4679,6 @@ body.is-booting #panelDesc {
     return unsettled || moving;
   }
 
-  function shouldRenderTitleThisFrame() {
-    /*
-      v149g61 mobile polish:
-      During rapid manual mobile burst-scroll, the slide title is hidden until
-      the motion settles anyway. Avoid running the title visibility/text routine
-      every frame during that burst. This preserves the title behaviour and all
-      z-axis visuals, but removes a fixed-overlay check from the hottest mobile
-      scroll path.
-    */
-    return !isMobileBurstScrollInFlight();
-  }
-
-  function hideSlideTitleForMobileBurstScroll() {
-    /*
-      v149g62 correction:
-      v149g61 skipped title rendering during burst-scroll, but that let the
-      previous visible title remain on screen. Keep the performance gate, but
-      apply one cheap opacity hide during mobile burst-scroll so titles fade away
-      immediately and media_nobutton slides never show a stale title.
-    */
-    if (lastRenderedSlideTitleVisible !== "0") {
-      if (slideTitleDisplay) slideTitleDisplay.style.opacity = "0";
-      lastRenderedSlideTitleVisible = "0";
-    }
-
-    if (leftMeta && lastRenderedLeftMetaVisible !== "0") {
-      leftMeta.style.opacity = "0";
-      lastRenderedLeftMetaVisible = "0";
-    }
-  }
-
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -4803,18 +4707,17 @@ body.is-booting #panelDesc {
         ? getAnchorPositions()
         : PRODUCTS.map((_, index) => -(CONFIG.slideSpacing * index));
 
-      /*
-        v149g63 correction:
-        During mobile burst-scroll, currentCenteredIndex may intentionally lag
-        behind the visual camera position while heavy UI updates are deferred.
-        The idle auto-settle routine must therefore resolve against every slide
-        anchor, not only previous/current/next around the old committed index.
-        This preserves the magnetised closest-slide behaviour.
-      */
-      let target = anchors[0];
+      const liveIndex = Math.max(0, Math.min(PRODUCTS.length - 1, currentCenteredIndex));
+      const prevIndex = Math.max(0, liveIndex - 1);
+      const nextIndex = Math.min(PRODUCTS.length - 1, liveIndex + 1);
+
+      const candidateIndexes = Array.from(new Set([prevIndex, liveIndex, nextIndex]));
+
+      let target = anchors[candidateIndexes[0]];
       let nearestDistance = Math.abs(position - target);
 
-      for (const candidate of anchors) {
+      for (const idx of candidateIndexes) {
+        const candidate = anchors[idx];
         const distance = Math.abs(position - candidate);
         if (distance < nearestDistance) {
           nearestDistance = distance;
@@ -6880,17 +6783,7 @@ body.is-booting #panelDesc {
 
     card.style.transform = `translate(-50%, -50%) translateZ(${effectiveZ}px) scale(${scale.toFixed(4)})`;
     card.style.opacity = opacity.toFixed(4);
-
-    /*
-      v149g64 mobile lag polish:
-      Keep blur active, but during rapid mobile burst-scroll quantise blur to
-      half-pixel steps. This reduces CSS filter churn on latest iOS without
-      changing z-axis physics, slide position, opacity logic, or the blur ranges.
-    */
-    const blurForCSS = isMobileBurstScrollInFlight()
-      ? (Math.round(blur * 2) / 2)
-      : blur;
-    card.style.filter = `blur(${blurForCSS.toFixed(isMobileBurstScrollInFlight() ? 1 : 2)}px)`;
+    card.style.filter = `blur(${blur.toFixed(2)}px)`;
   }
 
   function getCurrentSlideTitle() {
@@ -7014,11 +6907,7 @@ body.is-booting #panelDesc {
       }
     }
 
-    if (shouldRenderTitleThisFrame()) {
-      renderSlideTitle();
-    } else {
-      hideSlideTitleForMobileBurstScroll();
-    }
+    renderSlideTitle();
   }
 
   function render() {
@@ -7316,10 +7205,6 @@ body.is-booting #panelDesc {
     if (isInFooterScrollablePanel(e.target)) return;
     if (!e.touches.length || lastY === null) return;
 
-    if (typeof e.preventDefault === "function") {
-      e.preventDefault();
-    }
-
     if (isFooterPanelOpen() && !isInFooterPanelOrToggle(e.target)) {
       closeFooterPanels();
     }
@@ -7351,7 +7236,7 @@ body.is-booting #panelDesc {
     targetVelocity += dy * getTouchMoveStrength();
     scheduleIdleAutoSettle();
     start();
-  }, { passive: false });
+  }, { passive: true });
 
   window.addEventListener("touchend", (e) => {
     if (isInFooterScrollablePanel(e.target)) {
