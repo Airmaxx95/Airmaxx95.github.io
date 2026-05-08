@@ -1,28 +1,17 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g75 recovery: v61 flawless scroll + CSS title suppression
-Source: v149g61_mobile_burst_title_render_gate
-Why: v149g61 was reported as flawless scrolling; only stale title visibility was wrong.
-Changes:
-- CSS class suppresses title/meta during mobile burst motion.
-- No per-frame title DOM writes during motion.
-- Idle auto-settle resolves against all anchors to prevent pullback to stale index.
+PaletteKnife v149g76 mobile scroll freeze WebGL header
+Source: approved v149g60_mobile_media_nobutton_per_card_position
+Purpose: hard mobile performance fix after failed v149g61-v149g75 chain.
+Change: on mobile only, GLB/WebGL header rendering freezes during active z-axis movement and resumes after motion calms.
+Preserved:
+- z-axis physics untouched
+- blur untouched
+- dropdown system retained
+- media_nobutton per-card fix retained
+- desktop Safari/Chrome untouched
 Discarded:
-- v149g62-v149g73 experimental chain.
-Z-axis physics: unchanged from v149g61/v149g64 lineage.
-Blur: retained.
-media_nobutton per-card fix: retained.
-Dropdown system: retained.
--->
-<!--
-PaletteKnife v149g61 mobile burst title render gate
-Source: v149g60_mobile_media_nobutton_per_card_position
-Change: during rapid mobile burst-scroll, skip per-frame slide-title render checks until motion settles.
-Z-axis: untouched
-Blur: untouched
-media_nobutton per-card fix retained
-Dropdown system retained
-Mobile optimisation stack retained
+- all v149g61-v149g75 experimental scroll patches
 -->
 <!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
@@ -4264,20 +4253,6 @@ body.is-booting #panelDesc {
   }
 }
 
-
-/* =========================================================
-   v149g75 MOBILE TITLE CSS SUPPRESSION
-   Built from v149g61, the last reported flawless-scroll build.
-   During mobile motion, hide stale title/meta by CSS class instead of per-frame
-   title DOM rendering or opacity writes.
-   ========================================================= */
-@media (max-width: 900px), (pointer: coarse), (hover: none) {
-  body.mobile-zaxis-title-suppressed .slide-title-display,
-  body.mobile-zaxis-title-suppressed .left-meta {
-    opacity: 0 !important;
-  }
-}
-
 </style>
 
 <script type="application/ld+json">
@@ -4704,33 +4679,6 @@ body.is-booting #panelDesc {
     return unsettled || moving;
   }
 
-  let lastMobileTitleSuppressedState = null;
-
-  function shouldRenderTitleThisFrame() {
-    /*
-      v149g61 mobile polish retained:
-      During rapid manual mobile burst-scroll, the slide title is hidden until
-      the motion settles anyway. Avoid running the title visibility/text routine
-      every frame during that burst.
-    */
-    return !isMobileBurstScrollInFlight();
-  }
-
-  function setMobileTitleSuppressed(isSuppressed) {
-    /*
-      v149g75 correction:
-      v149g61 scrolled flawlessly but left stale titles visible because title
-      rendering was skipped during burst-scroll. Do not reintroduce per-frame
-      opacity writes. Toggle one body class only when the suppression state
-      changes, and let CSS hide the title/meta during motion.
-    */
-    if (!isMobileNavJumpRuntime()) return;
-    const nextState = !!isSuppressed;
-    if (lastMobileTitleSuppressedState === nextState) return;
-    document.body.classList.toggle("mobile-zaxis-title-suppressed", nextState);
-    lastMobileTitleSuppressedState = nextState;
-  }
-
 
   let touchGestureMoved = false;
   let touchGestureTotalDy = 0;
@@ -4759,17 +4707,17 @@ body.is-booting #panelDesc {
         ? getAnchorPositions()
         : PRODUCTS.map((_, index) => -(CONFIG.slideSpacing * index));
 
-      /*
-        v149g75 / v149g63 correction:
-        During deferred mobile scroll, currentCenteredIndex can intentionally
-        lag behind the visual camera position. Idle auto-settle must therefore
-        resolve against every slide anchor, not stale neighbours around the old
-        committed index.
-      */
-      let target = anchors[0];
+      const liveIndex = Math.max(0, Math.min(PRODUCTS.length - 1, currentCenteredIndex));
+      const prevIndex = Math.max(0, liveIndex - 1);
+      const nextIndex = Math.min(PRODUCTS.length - 1, liveIndex + 1);
+
+      const candidateIndexes = Array.from(new Set([prevIndex, liveIndex, nextIndex]));
+
+      let target = anchors[candidateIndexes[0]];
       let nearestDistance = Math.abs(position - target);
 
-      for (const candidate of anchors) {
+      for (const idx of candidateIndexes) {
+        const candidate = anchors[idx];
         const distance = Math.abs(position - candidate);
         if (distance < nearestDistance) {
           nearestDistance = distance;
@@ -6959,12 +6907,7 @@ body.is-booting #panelDesc {
       }
     }
 
-    if (shouldRenderTitleThisFrame()) {
-      setMobileTitleSuppressed(false);
-      renderSlideTitle();
-    } else {
-      setMobileTitleSuppressed(true);
-    }
+    renderSlideTitle();
   }
 
   function render() {
@@ -7813,7 +7756,36 @@ document.addEventListener('DOMContentLoaded', function () {
   const isMobileHeaderWebGL = isTouchOrMobileHeader();
 
   const zaxis = { position: 0, velocity: 0, targetVelocity: 0 };
-  const reactive = { scrollEnergy: 0, lastPosition: 0, syntheticPhase: 0, velocityMemory: 0 };
+  const reactive = {
+    scrollEnergy: 0,
+    lastPosition: 0,
+    syntheticPhase: 0,
+    velocityMemory: 0,
+    lastMotionAt: 0
+  };
+
+  function isMobileHeaderRuntime() {
+    return !!(
+      window.matchMedia &&
+      (
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(hover: none)").matches ||
+        window.innerWidth <= 900
+      )
+    );
+  }
+
+  function shouldFreezeMobileHeaderRender(now) {
+    /*
+      v149g76:
+      Approved recovery source is v149g60. Stop modifying the z-axis.
+      On mobile only, remove the WebGL header/CubeCamera render work from the
+      scroll hot path. The GLB remains visible, but its renderer freezes during
+      active slide movement and resumes immediately after the motion calms.
+    */
+    if (!isMobileHeaderRuntime()) return false;
+    return (now - reactive.lastMotionAt) < 140;
+  }
 
   function isSafariDesktop() {
     const ua = navigator.userAgent || "";
@@ -8099,6 +8071,14 @@ document.addEventListener('DOMContentLoaded', function () {
     reactive.lastPosition = nextPosition;
     reactive.velocityMemory = reactive.velocityMemory * 0.80 + rawVelocity * 0.20;
     reactive.scrollEnergy = Math.min(1.45, reactive.scrollEnergy + Math.min(0.42, delta * 0.013));
+
+    if (
+      Math.abs(zaxis.velocity) > 0.035 ||
+      Math.abs(zaxis.targetVelocity) > 0.035 ||
+      delta > 0.05
+    ) {
+      reactive.lastMotionAt = performance.now();
+    }
   }, { passive: true });
 
   window.addEventListener("wheel", function (event) {
@@ -8125,6 +8105,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function animate(now) {
     requestAnimationFrame(animate);
     if (!renderer || !scene || !camera || !logoGroup) return;
+
+    if (shouldFreezeMobileHeaderRender(now)) {
+      return;
+    }
 
     reactive.scrollEnergy *= 0.925;
     reactive.velocityMemory *= 0.91;
