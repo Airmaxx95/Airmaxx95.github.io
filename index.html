@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g72 single anchor pull fix
+PaletteKnife v149g73 mobile touchmove control fix
 Source: v149g64_mobile_burst_blur_precision_polish
-Change: removes duplicated anchorTarget pull/damping block and replaces it with one deterministic anchor pull.
-Reason: fixes backward one-slide stutter caused by asymmetric double magnetisation force.
-Z-axis physics: minimally corrected; no visual redesign
+Change: z-axis touchmove is now passive:false with preventDefault, and mobile scene declares touch-action:none / overscroll-behavior:none.
+Reason: prevents latest iOS native page scroll/overscroll from fighting the custom z-axis engine during slow singular backward gestures.
+Z-axis physics: unchanged
 Visible blur: retained
 v149g63 nearest-anchor settle fix retained
 v149g64 blur precision polish retained
 media_nobutton per-card fix retained
 Dropdown system retained
-v149g65-v149g71 discarded
+v149g65-v149g72 discarded
 -->
 <!--
 PaletteKnife v149g64 mobile burst blur precision polish
@@ -4292,6 +4292,32 @@ body.is-booting #panelDesc {
   }
 }
 
+
+/* =========================================================
+   v149g73 MOBILE TOUCHMOVE CONTROL FIX
+   Prevent iOS native page-scroll/overscroll from fighting the z-axis engine.
+   ========================================================= */
+@media (max-width: 768px), (pointer: coarse), (hover: none) {
+  html,
+  body,
+  .scene {
+    overscroll-behavior: none;
+  }
+
+  .scene {
+    touch-action: none;
+  }
+
+  .footer-terms-panel,
+  .footer-about-panel,
+  .cart-drawer-body,
+  .nav-grid,
+  .panel {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 </style>
 
 <script type="application/ld+json">
@@ -7016,19 +7042,24 @@ body.is-booting #panelDesc {
     }
 
     if (anchorTarget !== null) {
-      /*
-        v149g72:
-        The anchorTarget force was accidentally applied twice per frame with two
-        different pull/damping profiles. Latest iOS exposed this most clearly
-        when scrolling backwards one slide, where the second pull could create
-        a visible micro-stutter just before/at magnetised lock. Use one single,
-        deterministic anchor pull.
-      */
       const anchorDelta = anchorTarget - position;
-      velocity += clamp(anchorDelta * 0.009, -14, 14);
-      velocity *= 0.986;
+      velocity += clamp(anchorDelta * 0.01, -14, 14);
+      velocity *= 0.985;
 
-      if (Math.abs(anchorDelta) < CONFIG.centerDeadband && Math.abs(velocity) < 0.13) {
+      if (Math.abs(anchorDelta) < CONFIG.centerDeadband && Math.abs(velocity) < 0.12) {
+        position = anchorTarget;
+        velocity = 0;
+        targetVelocity = 0;
+        anchorTarget = null;
+      }
+    }
+
+    if (anchorTarget !== null) {
+      const targetDelta = anchorTarget - position;
+      velocity += clamp(targetDelta * 0.0065, -18, 18);
+      velocity *= 0.988;
+
+      if (Math.abs(targetDelta) < CONFIG.centerDeadband && Math.abs(velocity) < 0.14) {
         position = anchorTarget;
         velocity = 0;
         targetVelocity = 0;
@@ -7285,6 +7316,10 @@ body.is-booting #panelDesc {
     if (isInFooterScrollablePanel(e.target)) return;
     if (!e.touches.length || lastY === null) return;
 
+    if (typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+
     if (isFooterPanelOpen() && !isInFooterPanelOrToggle(e.target)) {
       closeFooterPanels();
     }
@@ -7316,7 +7351,7 @@ body.is-booting #panelDesc {
     targetVelocity += dy * getTouchMoveStrength();
     scheduleIdleAutoSettle();
     start();
-  }, { passive: true });
+  }, { passive: false });
 
   window.addEventListener("touchend", (e) => {
     if (isInFooterScrollablePanel(e.target)) {
