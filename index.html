@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g71 mobile singular WebGL environment rate-limit
+PaletteKnife v149g72 single anchor pull fix
 Source: v149g64_mobile_burst_blur_precision_polish
-Change: mobile live CubeCamera/environment capture updates less frequently during low/medium singular scroll movement.
-Reason: targets singular one-slide mobile stutter without z-axis, panel timing, or culling hacks.
-Z-axis physics: unchanged
+Change: removes duplicated anchorTarget pull/damping block and replaces it with one deterministic anchor pull.
+Reason: fixes backward one-slide stutter caused by asymmetric double magnetisation force.
+Z-axis physics: minimally corrected; no visual redesign
 Visible blur: retained
 v149g63 nearest-anchor settle fix retained
 v149g64 blur precision polish retained
 media_nobutton per-card fix retained
 Dropdown system retained
-v149g65-v149g70 discarded
+v149g65-v149g71 discarded
 -->
 <!--
 PaletteKnife v149g64 mobile burst blur precision polish
@@ -7016,24 +7016,19 @@ body.is-booting #panelDesc {
     }
 
     if (anchorTarget !== null) {
+      /*
+        v149g72:
+        The anchorTarget force was accidentally applied twice per frame with two
+        different pull/damping profiles. Latest iOS exposed this most clearly
+        when scrolling backwards one slide, where the second pull could create
+        a visible micro-stutter just before/at magnetised lock. Use one single,
+        deterministic anchor pull.
+      */
       const anchorDelta = anchorTarget - position;
-      velocity += clamp(anchorDelta * 0.01, -14, 14);
-      velocity *= 0.985;
+      velocity += clamp(anchorDelta * 0.009, -14, 14);
+      velocity *= 0.986;
 
-      if (Math.abs(anchorDelta) < CONFIG.centerDeadband && Math.abs(velocity) < 0.12) {
-        position = anchorTarget;
-        velocity = 0;
-        targetVelocity = 0;
-        anchorTarget = null;
-      }
-    }
-
-    if (anchorTarget !== null) {
-      const targetDelta = anchorTarget - position;
-      velocity += clamp(targetDelta * 0.0065, -18, 18);
-      velocity *= 0.988;
-
-      if (Math.abs(targetDelta) < CONFIG.centerDeadband && Math.abs(velocity) < 0.14) {
+      if (Math.abs(anchorDelta) < CONFIG.centerDeadband && Math.abs(velocity) < 0.13) {
         position = anchorTarget;
         velocity = 0;
         targetVelocity = 0;
@@ -7834,37 +7829,7 @@ document.addEventListener('DOMContentLoaded', function () {
     phase: 0,
     velocity: 0,
     lastNow: 0,
-    clockPhase: 0,
-    envFrame: 0
-  };
-
-  function shouldUpdateMobileLiveEnvironment(energy) {
-    /*
-      v149g71:
-      Singular mobile scroll stutter survived panel deferral and render-window
-      tests, which points at the WebGL environment capture path. The CubeCamera
-      is very expensive and was updating every frame even for tiny one-slide
-      moves. On mobile only, keep the GLB visible and reactive, but reduce the
-      live environment capture frequency during low/medium movement. This is
-      smoother than v149g49 because it targets singular scroll, not high-energy
-      burst scroll where frame skipping felt uneven.
-    */
-    const isMobileRuntime = !!(
-      window.matchMedia &&
-      (
-        window.matchMedia("(pointer: coarse)").matches ||
-        window.matchMedia("(hover: none)").matches ||
-        window.innerWidth <= 900
-      )
-    );
-
-    if (!isMobileRuntime) return true;
-
-    liveEnvironmentMotion.envFrame = (liveEnvironmentMotion.envFrame + 1) % 60;
-
-    if (energy > 1.05) return true;
-    if (energy > 0.42) return (liveEnvironmentMotion.envFrame % 2) === 0;
-    return (liveEnvironmentMotion.envFrame % 3) === 0;
+    clockPhase: 0
   };
   let loaded = false;
   let firstFrameRendered = false;
@@ -8231,10 +8196,8 @@ document.addEventListener('DOMContentLoaded', function () {
       liveEnvRig.rotation.y = p;
       liveEnvRig.rotation.z = 0;
 
-      if (shouldUpdateMobileLiveEnvironment(energy)) {
-        liveEnvCubeCamera.update(renderer, liveEnvScene);
-        scene.environment = liveEnvTarget.texture;
-      }
+      liveEnvCubeCamera.update(renderer, liveEnvScene);
+      scene.environment = liveEnvTarget.texture;
     }
 
     if (typeof proofChromeMaterials !== "undefined" && liveEnvTarget) {
