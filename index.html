@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g77 mobile stutter binary diagnostic
+PaletteKnife v149g78 mobile title post-settle only
 Source: approved v149g60_mobile_media_nobutton_per_card_position
-Default behaviour: unchanged from v149g60.
-Purpose: prove the mobile stutter source before any more fixes.
-Test URLs:
-- ?pk_no_webgl=1
-- ?pk_no_blur=1
-- ?pk_no_panel=1
-- ?pk_no_title=1
-- combinations allowed, e.g. ?pk_no_webgl=1&pk_no_blur=1
+Change:
+- mobile slide title/meta hides during z-axis movement
+- title render/update is skipped while motion is active
+- title updates once after magnetised settle
+- media_nobutton title suppression preserved through existing shouldShowCenteredTitle logic
+Preserved:
+- blur core feature untouched
+- z-axis physics untouched
+- dropdown system retained
+- media_nobutton per-card fix retained
+- no WebGL/panel/touchmove experiments
 -->
 <!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
@@ -4253,37 +4256,14 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g77 DIAGNOSTIC VISIBILITY SWITCHES
-   Default unaffected. Activated only by JS-added body classes.
+   v149g78 MOBILE TITLE POST-SETTLE ONLY
+   Keep blur core feature. Remove title/meta from mobile scroll hot path.
    ========================================================= */
-body.pk-diag-no-panel .panel,
-body.pk-diag-no-panel .panel-actions-mobile-detached,
-body.pk-diag-no-panel .cart-toggle,
-body.pk-diag-no-panel .cart-drawer,
-body.pk-diag-no-panel .nav-panel {
-  display: none !important;
-}
-
-body.pk-diag-no-title .slide-title-display,
-body.pk-diag-no-title .left-meta {
-  display: none !important;
-}
-
-.pk-diagnostic-hud {
-  position: fixed;
-  left: 10px;
-  top: 10px;
-  z-index: 999999;
-  padding: 6px 8px;
-  font: 11px/1.25 monospace;
-  color: #000;
-  background: rgba(255,255,255,0.78);
-  pointer-events: none;
-  display: none;
-}
-
-body.pk-diag-active .pk-diagnostic-hud {
-  display: block;
+@media (max-width: 900px), (pointer: coarse), (hover: none) {
+  body.is-zaxis-moving .slide-title-display,
+  body.is-zaxis-moving .left-meta {
+    opacity: 0 !important;
+  }
 }
 
 </style>
@@ -4313,27 +4293,6 @@ body.pk-diag-active .pk-diagnostic-hud {
     }
   ]
 }
-</script>
-
-
-<script>
-/* =========================================================
-   v149g77 DIAGNOSTIC FLAGS — default behaviour unchanged
-   URL flags:
-   ?pk_no_webgl=1   disables GLB/WebGL header
-   ?pk_no_blur=1    disables slide CSS blur only
-   ?pk_no_panel=1   hides mobile product panel/CTA/cart/nav overlays
-   ?pk_no_title=1   hides title/meta overlays
-   ========================================================= */
-window.PK_DIAG = (function () {
-  var q = new URLSearchParams(window.location.search);
-  return {
-    noWebGL: q.get("pk_no_webgl") === "1",
-    noBlur: q.get("pk_no_blur") === "1",
-    noPanel: q.get("pk_no_panel") === "1",
-    noTitle: q.get("pk_no_title") === "1"
-  };
-})();
 </script>
 
 </head>
@@ -4699,6 +4658,37 @@ window.PK_DIAG = (function () {
   let anchorTarget = null;
   let currentCenteredIndex = 0;
   let mobileNavJumpTargetIndex = null;
+  let lastZaxisMovingState = null;
+
+  function isMobileTitleRuntime() {
+    return !!(
+      window.matchMedia &&
+      (
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(hover: none)").matches ||
+        window.innerWidth <= 900
+      )
+    );
+  }
+
+  function setZaxisMovingState(isMoving) {
+    if (!isMobileTitleRuntime()) return;
+    const nextState = !!isMoving;
+    if (lastZaxisMovingState === nextState) return;
+    document.body.classList.toggle("is-zaxis-moving", nextState);
+    lastZaxisMovingState = nextState;
+  }
+
+  function isCurrentMotionActive() {
+    return (
+      introActive ||
+      returningToStart ||
+      anchorTarget !== null ||
+      Math.abs(velocity) > CONFIG.stopThreshold ||
+      Math.abs(targetVelocity) > CONFIG.stopThreshold ||
+      Math.abs(position - nearestAnchor(position)) > CONFIG.centerDeadband
+    );
+  }
 
   function isMobileNavJumpRuntime() {
     return !!(
@@ -6837,7 +6827,7 @@ window.PK_DIAG = (function () {
 
     card.style.transform = `translate(-50%, -50%) translateZ(${effectiveZ}px) scale(${scale.toFixed(4)})`;
     card.style.opacity = opacity.toFixed(4);
-    card.style.filter = (window.PK_DIAG && window.PK_DIAG.noBlur) ? "blur(0px)" : `blur(${blur.toFixed(2)}px)`;
+    card.style.filter = `blur(${blur.toFixed(2)}px)`;
   }
 
   function getCurrentSlideTitle() {
@@ -6961,7 +6951,9 @@ window.PK_DIAG = (function () {
       }
     }
 
-    renderSlideTitle();
+    if (!isMobileTitleRuntime() || !isCurrentMotionActive()) {
+      renderSlideTitle();
+    }
   }
 
   function render() {
@@ -7040,28 +7032,34 @@ window.PK_DIAG = (function () {
       targetVelocity = 0;
     }
 
+    const stillMoving = (
+      introActive ||
+      Math.abs(velocity) > CONFIG.stopThreshold ||
+      Math.abs(targetVelocity) > CONFIG.stopThreshold ||
+      Math.abs(position - nearestAnchor(position)) > CONFIG.centerDeadband
+    );
+
+    setZaxisMovingState(stillMoving);
+
     renderAll();
     try {
       window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
     } catch (error) {}
 
-    if (
-      introActive ||
-      Math.abs(velocity) > CONFIG.stopThreshold ||
-      Math.abs(targetVelocity) > CONFIG.stopThreshold ||
-      Math.abs(position - nearestAnchor(position)) > CONFIG.centerDeadband
-    ) {
+    if (stillMoving) {
       raf = requestAnimationFrame(render);
     } else {
       position = nearestAnchor(position);
       velocity = 0;
       targetVelocity = 0;
+      setZaxisMovingState(false);
       renderAll();
       raf = null;
     }
   }
 
   function start() {
+    setZaxisMovingState(true);
     if (raf === null) raf = requestAnimationFrame(render);
   }
 
@@ -7755,7 +7753,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function canUseWebGL() {
-    if (window.PK_DIAG && window.PK_DIAG.noWebGL) return { ok: false, reason: "diagnostic_no_webgl" };
     if (!header || !holder || !canvas) return { ok: false, reason: "missing_dom" };
     /* v149g46b: mobile WebGL/GLB header visible by request; no mobile/touch hard-disable here. */
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ok: false, reason: "reduced_motion" };
@@ -8206,42 +8203,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, 10000);
 })();
-</script>
-
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  if (!window.PK_DIAG) return;
-  var active = window.PK_DIAG.noWebGL || window.PK_DIAG.noBlur || window.PK_DIAG.noPanel || window.PK_DIAG.noTitle;
-  document.body.classList.toggle("pk-diag-active", active);
-  document.body.classList.toggle("pk-diag-no-panel", !!window.PK_DIAG.noPanel);
-  document.body.classList.toggle("pk-diag-no-title", !!window.PK_DIAG.noTitle);
-
-  var hud = document.createElement("div");
-  hud.className = "pk-diagnostic-hud";
-  hud.id = "pkDiagnosticHud";
-  hud.textContent = "PK diagnostic";
-  document.body.appendChild(hud);
-
-  var last = performance.now();
-  var worst = 0;
-  var avg = 16.7;
-  function tick(now) {
-    var dt = now - last;
-    last = now;
-    worst = Math.max(worst * 0.98, dt);
-    avg = avg * 0.92 + dt * 0.08;
-    hud.textContent =
-      "PK diag\n" +
-      "avg " + avg.toFixed(1) + "ms / worst " + worst.toFixed(1) + "ms\n" +
-      "webgl " + (window.PK_DIAG.noWebGL ? "OFF" : "ON") + "\n" +
-      "blur " + (window.PK_DIAG.noBlur ? "OFF" : "ON") + "\n" +
-      "panel " + (window.PK_DIAG.noPanel ? "OFF" : "ON") + "\n" +
-      "title " + (window.PK_DIAG.noTitle ? "OFF" : "ON");
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-});
 </script>
 
 </body>
