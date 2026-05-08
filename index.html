@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g69 mobile render-window culling
+PaletteKnife v149g70 mobile panel render idle callback
 Source: v149g64_mobile_burst_blur_precision_polish
-Change: mobile frame loop skips transform/opacity/filter writes for cards far outside the visible z-window.
-Reason: fixes janky mobile scrolling without timing hacks, panel delays, or z-axis physics changes.
+Change: mobile singular slide changes commit magnetised state immediately, but defer heavy panel/cart/nav/analytics work to idle callback.
+Reason: fixes one-at-a-time mobile stutter without z-axis changes or fluidity-killing motion timers.
 Z-axis physics: unchanged
 Visible blur: retained
 v149g63 nearest-anchor settle fix retained
 v149g64 blur precision polish retained
 media_nobutton per-card fix retained
 Dropdown system retained
-v149g65-v149g68 discarded
+v149g65-v149g69 discarded
 -->
 <!--
 PaletteKnife v149g64 mobile burst blur precision polish
@@ -6821,39 +6821,7 @@ body.is-booting #panelDesc {
     return nearestIdx;
   }
 
-  function shouldCullCardOnMobile(effectiveZ) {
-    /*
-      v149g69 hard mobile performance fix:
-      The expensive hot path was still updating transform/opacity/filter for
-      every slide every frame, even slides far beyond the visible fade range.
-      On mobile only, skip style churn for cards that are safely outside the
-      visible z-window. This preserves z-axis physics and visible blur, because
-      culled cards are already beyond the fade area.
-    */
-    if (!isMobileNavJumpRuntime()) return false;
-
-    const farLimit = CONFIG.farFadeEnd - CONFIG.slideSpacing;
-    const nearLimit = CONFIG.nearFadeEnd + CONFIG.slideSpacing;
-
-    return effectiveZ < farLimit || effectiveZ > nearLimit;
-  }
-
   function renderCard(card, effectiveZ) {
-    if (shouldCullCardOnMobile(effectiveZ)) {
-      if (card._pkCulled !== true) {
-        card.style.opacity = "0";
-        card.style.pointerEvents = "none";
-        card.style.filter = "blur(0px)";
-        card._pkCulled = true;
-      }
-      return;
-    }
-
-    if (card._pkCulled === true) {
-      card._pkCulled = false;
-      card.style.pointerEvents = "";
-    }
-
     const scale = effectiveZ <= 0
       ? mapRange(effectiveZ, CONFIG.farFadeEnd, 0, CONFIG.farScale, CONFIG.centerScale)
       : mapRange(effectiveZ, 0, CONFIG.nearFadeEnd, CONFIG.centerScale, CONFIG.nearScale);
@@ -6971,6 +6939,66 @@ body.is-booting #panelDesc {
     }
   }
 
+  let pendingMobilePanelWorkToken = null;
+  let pendingMobilePanelWorkIndex = null;
+
+  function runCenteredPanelWork(index) {
+    setPanelValidationMessage("");
+    renderPanel(index);
+
+    const currentProduct = PRODUCTS[index];
+    trackViewItem(currentProduct, index, "centered_change");
+    const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
+    if (navPanel && navPanel.classList.contains("is-open")) {
+      if (hideNavForCurrent) {
+        setNavPanelOpen(false);
+      } else {
+        updateNavPanelMaxHeight();
+      }
+    }
+  }
+
+  function scheduleCenteredPanelWork(index) {
+    /*
+      v149g70 mobile single-step stutter fix:
+      Keep the visual/magnetised state immediate, but move expensive panel/cart/
+      nav/analytics work out of the same animation frame as z-axis settlement.
+      This is a one-shot idle handoff, not a motion timer. It preserves the
+      fluid feel while removing the stutter caused by forced DOM/layout work
+      during singular mobile slide changes.
+    */
+    if (!isMobileNavJumpRuntime()) {
+      runCenteredPanelWork(index);
+      return;
+    }
+
+    pendingMobilePanelWorkIndex = index;
+
+    if (pendingMobilePanelWorkToken !== null) {
+      if (window.cancelIdleCallback && typeof pendingMobilePanelWorkToken === "number") {
+        try { window.cancelIdleCallback(pendingMobilePanelWorkToken); } catch (error) {}
+      } else {
+        window.clearTimeout(pendingMobilePanelWorkToken);
+      }
+      pendingMobilePanelWorkToken = null;
+    }
+
+    const callback = () => {
+      pendingMobilePanelWorkToken = null;
+      const targetIndex = pendingMobilePanelWorkIndex;
+      pendingMobilePanelWorkIndex = null;
+
+      if (targetIndex === null || targetIndex !== currentCenteredIndex) return;
+      runCenteredPanelWork(targetIndex);
+    };
+
+    if (window.requestIdleCallback) {
+      pendingMobilePanelWorkToken = window.requestIdleCallback(callback, { timeout: 120 });
+    } else {
+      pendingMobilePanelWorkToken = window.setTimeout(callback, 32);
+    }
+  }
+
   function renderAll() {
     const introOffset = getIntroOffset();
 
@@ -7000,19 +7028,7 @@ body.is-booting #panelDesc {
 
         closeAllLightboxes();
         currentCenteredIndex = finalCentered;
-        setPanelValidationMessage("");
-        renderPanel(currentCenteredIndex);
-
-        const currentProduct = PRODUCTS[currentCenteredIndex];
-        trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
-        const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
-        if (navPanel && navPanel.classList.contains("is-open")) {
-          if (hideNavForCurrent) {
-            setNavPanelOpen(false);
-          } else {
-            updateNavPanelMaxHeight();
-          }
-        }
+        scheduleCenteredPanelWork(currentCenteredIndex);
 
         if (shouldReleaseMobileNavJump) {
           mobileNavJumpTargetIndex = null;
