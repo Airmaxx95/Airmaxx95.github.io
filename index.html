@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <!--
+PaletteKnife v149g66 mobile post-settle UI defer
+Source: v149g65_mobile_unsettled_center_update_defer
+Change: mobile centered-slide heavy UI side effects run one frame after magnetised lock.
+Fixes: one-step backward scroll lag such as 5 → 4.
+Z-axis physics: unchanged
+Blur feature: retained
+v149g63/v149g65 fixes retained
+media_nobutton per-card fix retained
+Dropdown system retained
+-->
+<!--
 PaletteKnife v149g65 mobile unsettled centered-update defer
 Source: v149g64_mobile_burst_blur_precision_polish
 Change: mobile heavy centered-slide UI updates defer during any unsettled motion, not only burst-scroll.
@@ -6949,6 +6960,49 @@ body.is-booting #panelDesc {
     }
   }
 
+  let pendingMobileCenteredUiFrame = null;
+
+  function applyCenteredSlideSideEffects(index) {
+    closeAllLightboxes();
+    setPanelValidationMessage("");
+    renderPanel(index);
+
+    const currentProduct = PRODUCTS[index];
+    trackViewItem(currentProduct, index, "centered_change");
+    const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
+    if (navPanel && navPanel.classList.contains("is-open")) {
+      if (hideNavForCurrent) {
+        setNavPanelOpen(false);
+      } else {
+        updateNavPanelMaxHeight();
+      }
+    }
+  }
+
+  function scheduleCenteredSlideSideEffects(index) {
+    /*
+      v149g66 mobile polish:
+      On latest iOS, one-step backward settling can stutter when panel/cart/nav/
+      lightbox side effects run on the exact same frame as the magnetised lock.
+      Commit currentCenteredIndex immediately so magnetisation/title state stays
+      correct, then run the heavy UI updates on the next animation frame.
+    */
+    if (!isMobileNavJumpRuntime()) {
+      applyCenteredSlideSideEffects(index);
+      return;
+    }
+
+    if (pendingMobileCenteredUiFrame !== null) {
+      window.cancelAnimationFrame(pendingMobileCenteredUiFrame);
+      pendingMobileCenteredUiFrame = null;
+    }
+
+    pendingMobileCenteredUiFrame = window.requestAnimationFrame(() => {
+      pendingMobileCenteredUiFrame = null;
+      applyCenteredSlideSideEffects(index);
+    });
+  }
+
   function renderAll() {
     const introOffset = getIntroOffset();
 
@@ -6978,21 +7032,8 @@ body.is-booting #panelDesc {
       if ((!isMobileNavJumpActive && !shouldDeferMobileCenteredUpdate) || shouldReleaseMobileNavJump) {
         const finalCentered = shouldReleaseMobileNavJump ? mobileNavJumpTargetIndex : newCentered;
 
-        closeAllLightboxes();
         currentCenteredIndex = finalCentered;
-        setPanelValidationMessage("");
-        renderPanel(currentCenteredIndex);
-
-        const currentProduct = PRODUCTS[currentCenteredIndex];
-        trackViewItem(currentProduct, currentCenteredIndex, "centered_change");
-        const hideNavForCurrent = currentProduct && (isMediaOnlyState(currentProduct.saleState) || isMediaNoButtonState(currentProduct.saleState));
-        if (navPanel && navPanel.classList.contains("is-open")) {
-          if (hideNavForCurrent) {
-            setNavPanelOpen(false);
-          } else {
-            updateNavPanelMaxHeight();
-          }
-        }
+        scheduleCenteredSlideSideEffects(currentCenteredIndex);
 
         if (shouldReleaseMobileNavJump) {
           mobileNavJumpTargetIndex = null;
