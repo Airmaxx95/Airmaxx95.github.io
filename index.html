@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g79 mobile backward release impulse fix
+PaletteKnife v149g80 lightbox close-all scroll spike fix
 Source: v149g78_mobile_title_post_settle_only
-Change: softens only mobile backward touch-release impulse to fix singular backward stutter like 7→6 or 3→2.
+Change:
+- centered slide changes no longer call closeAllLightboxes()
+- scroll transitions close only genuinely open lightboxes
+Reason:
+- closeAllLightboxes() looped every product and could reset/swap media for closed slides, causing hidden mobile DOM/media work during singular slide changes.
 Preserved:
 - blur core feature untouched
 - title post-settle-only fix retained
-- z-axis baseline preserved except backward release impulse scaling
+- z-axis physics untouched
 - burst scroll retained
 - dropdown system retained
 - media_nobutton per-card fix retained
@@ -6941,7 +6945,7 @@ body.is-booting #panelDesc {
       if ((!isMobileNavJumpActive && !shouldDeferMobileBurstScroll) || shouldReleaseMobileNavJump) {
         const finalCentered = shouldReleaseMobileNavJump ? mobileNavJumpTargetIndex : newCentered;
 
-        closeAllLightboxes();
+        closeOpenLightboxesOnly();
         currentCenteredIndex = finalCentered;
         setPanelValidationMessage("");
         renderPanel(currentCenteredIndex);
@@ -7170,6 +7174,23 @@ body.is-booting #panelDesc {
     PRODUCTS.forEach((_, i) => closeLightbox(i, true));
   }
 
+  function closeOpenLightboxesOnly() {
+    /*
+      v149g80:
+      The normal slide-centered-change path was calling closeAllLightboxes(),
+      which loops every product and can reset/swap media for closed slides too
+      when their lightboxIndex is not zero. That hidden media work is poisonous
+      during mobile scroll and explains one-slide stutter that survives title,
+      blur, WebGL and input tests. For scroll transitions, close only genuinely
+      open lightboxes.
+    */
+    PRODUCTS.forEach((product, i) => {
+      if (product && product.lightboxOpen) {
+        closeLightbox(i, true);
+      }
+    });
+  }
+
   function shiftLightbox(index, direction) {
     const product = PRODUCTS[index];
     const card = cards[index];
@@ -7313,21 +7334,8 @@ body.is-booting #panelDesc {
     }
 
     if (touchGestureMoved) {
-      /*
-        v149g79:
-        Burst scroll is fine. The remaining stutter is singular backward motion
-        such as 7→6 or 3→2. On touch release, backward gestures were getting the
-        same release impulse as forward gestures, which can push the camera just
-        past the previous anchor and make iOS visibly correct/magnetise back.
-        Keep z-axis physics intact, but soften only the mobile backward release
-        impulse so one-step backwards locks cleanly.
-      */
-      const movingBackward = touchGestureTotalDy > 0;
-      const releaseScale = movingBackward ? 0.62 : 1;
-      const carryScale = movingBackward ? 0.68 : 1;
-
-      velocity += touchGestureLastDy * getTouchReleaseBoost() * releaseScale;
-      targetVelocity += touchGestureTotalDy * 0.118 * carryScale;
+      velocity += touchGestureLastDy * getTouchReleaseBoost();
+      targetVelocity += touchGestureTotalDy * 0.118;
       markRecentTouchScroll();
       scheduleIdleAutoSettle();
       start();
