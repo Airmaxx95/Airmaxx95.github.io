@@ -1,19 +1,17 @@
 <!DOCTYPE html>
-
 <!--
-PaletteKnife v149g81 mobile inline title during motion
+PaletteKnife v149g82 mobile slide title no-fade
 Source: v149g80_lightbox_close_all_scroll_spike_fix
 Change:
-- mobile fixed title/meta hidden during z-axis motion
-- active slide renders inline title inside card layer during motion
-- fixed title returns after settle
-Purpose:
-- reduce Safari compositor conflict between blur layer and fixed overlay title
+- mobile slide title/meta transitions disabled
+- title appears/disappears instantly instead of fading
+- v149g80 lightbox close-all scroll-spike fix retained
 Preserved:
 - blur untouched
 - z-axis untouched
-- dropdown retained
-- media_nobutton logic retained
+- WebGL untouched
+- dropdown system retained
+- media_nobutton per-card fix retained
 -->
 <!--
 PaletteKnife v149g80 lightbox close-all scroll spike fix
@@ -4300,31 +4298,22 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g81 MOBILE INLINE TITLE DURING MOTION
+   v149g82 MOBILE SLIDE TITLE NO-FADE
+   Built from v149g80 logic.
+   Removes fade/interpolation from slide title/meta on mobile.
    ========================================================= */
-.mobile-inline-motion-title{
-  position:absolute;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
-  font-size:14px;
-  letter-spacing:0.02em;
-  color:#000;
-  opacity:0;
-  pointer-events:none;
-  white-space:nowrap;
-  transition:opacity 120ms ease;
-  z-index:6;
-}
-
-@media (max-width:900px),(pointer:coarse),(hover:none){
-  body.is-zaxis-moving .slide-title-display,
-  body.is-zaxis-moving .left-meta{
-    opacity:0 !important;
+@media (max-width: 900px), (pointer: coarse), (hover: none) {
+  .slide-title-display,
+  .slide-title-display *,
+  .left-meta,
+  .left-meta * {
+    transition: none !important;
+    animation: none !important;
   }
 
-  body.is-zaxis-moving .card.is-active-motion-card .mobile-inline-motion-title{
-    opacity:1;
+  body.is-zaxis-moving .slide-title-display,
+  body.is-zaxis-moving .left-meta {
+    opacity: 0 !important;
   }
 }
 
@@ -4739,25 +4728,6 @@ body.is-booting #panelDesc {
     if (lastZaxisMovingState === nextState) return;
     document.body.classList.toggle("is-zaxis-moving", nextState);
     lastZaxisMovingState = nextState;
-  }
-
-  function updateInlineMotionTitles(activeIndex) {
-    if (!isMobileTitleRuntime()) return;
-
-    document.querySelectorAll(".card").forEach((card) => {
-      const idx = Number(card.dataset.index || "-1");
-      const product = PRODUCTS[idx];
-
-      card.classList.remove("is-active-motion-card");
-
-      if (
-        idx === activeIndex &&
-        product &&
-        !isMediaNoButtonState(product.saleState)
-      ) {
-        card.classList.add("is-active-motion-card");
-      }
-    });
   }
 
   function isCurrentMotionActive() {
@@ -6006,11 +5976,6 @@ body.is-booting #panelDesc {
       card.dataset.index = String(index);
       card.dataset.id = product.id;
 
-      const inlineMotionTitle = document.createElement("div");
-      inlineMotionTitle.className = "mobile-inline-motion-title";
-      inlineMotionTitle.textContent = product.title || "";
-      card.appendChild(inlineMotionTitle);
-
       const frame = document.createElement("div");
       frame.className = "media-frame";
       frame.appendChild(createMediaElement(product.media[0]));
@@ -7126,7 +7091,6 @@ body.is-booting #panelDesc {
     );
 
     setZaxisMovingState(stillMoving);
-    updateInlineMotionTitles(currentCenteredIndex);
 
     renderAll();
     try {
