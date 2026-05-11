@@ -1,48 +1,20 @@
 <!DOCTYPE html>
 <!--
-PaletteKnife v149g82 mobile slide title no-fade
-Source: v149g80_lightbox_close_all_scroll_spike_fix
+PaletteKnife v149g83 clean v149g60 + slide title no-fade
+Source: v149g60_mobile_media_nobutton_per_card_position
 Change:
-- mobile slide title/meta transitions disabled
-- title appears/disappears instantly instead of fading
-- v149g80 lightbox close-all scroll-spike fix retained
+- removes slide title/meta fade transitions
+- no opacity interpolation on slide title/meta
 Preserved:
+- v149g60 desktop Safari behaviour
+- v149g60 mobile behaviour
 - blur untouched
 - z-axis untouched
 - WebGL untouched
 - dropdown system retained
 - media_nobutton per-card fix retained
--->
-<!--
-PaletteKnife v149g80 lightbox close-all scroll spike fix
-Source: v149g78_mobile_title_post_settle_only
-Change:
-- centered slide changes no longer call closeAllLightboxes()
-- scroll transitions close only genuinely open lightboxes
-Reason:
-- closeAllLightboxes() looped every product and could reset/swap media for closed slides, causing hidden mobile DOM/media work during singular slide changes.
-Preserved:
-- blur core feature untouched
-- title post-settle-only fix retained
-- z-axis physics untouched
-- burst scroll retained
-- dropdown system retained
-- media_nobutton per-card fix retained
--->
-<!--
-PaletteKnife v149g78 mobile title post-settle only
-Source: approved v149g60_mobile_media_nobutton_per_card_position
-Change:
-- mobile slide title/meta hides during z-axis movement
-- title render/update is skipped while motion is active
-- title updates once after magnetised settle
-- media_nobutton title suppression preserved through existing shouldShowCenteredTitle logic
-Preserved:
-- blur core feature untouched
-- z-axis physics untouched
-- dropdown system retained
-- media_nobutton per-card fix retained
-- no WebGL/panel/touchmove experiments
+Excluded:
+- v149g61-v149g82 experimental scroll/performance chain
 -->
 <!--
 PaletteKnife v149g60 mobile media_nobutton per-card position fix
@@ -4286,35 +4258,15 @@ body.is-booting #panelDesc {
 
 
 /* =========================================================
-   v149g78 MOBILE TITLE POST-SETTLE ONLY
-   Keep blur core feature. Remove title/meta from mobile scroll hot path.
+   v149g83 SLIDE TITLE NO-FADE PATCH ON CLEAN v149g60
+   Removes title/meta fade interpolation while preserving v149g60 baseline.
    ========================================================= */
-@media (max-width: 900px), (pointer: coarse), (hover: none) {
-  body.is-zaxis-moving .slide-title-display,
-  body.is-zaxis-moving .left-meta {
-    opacity: 0 !important;
-  }
-}
-
-
-/* =========================================================
-   v149g82 MOBILE SLIDE TITLE NO-FADE
-   Built from v149g80 logic.
-   Removes fade/interpolation from slide title/meta on mobile.
-   ========================================================= */
-@media (max-width: 900px), (pointer: coarse), (hover: none) {
-  .slide-title-display,
-  .slide-title-display *,
-  .left-meta,
-  .left-meta * {
-    transition: none !important;
-    animation: none !important;
-  }
-
-  body.is-zaxis-moving .slide-title-display,
-  body.is-zaxis-moving .left-meta {
-    opacity: 0 !important;
-  }
+.slide-title-display,
+.slide-title-display *,
+.left-meta,
+.left-meta * {
+  transition: none !important;
+  animation: none !important;
 }
 
 </style>
@@ -4709,37 +4661,6 @@ body.is-booting #panelDesc {
   let anchorTarget = null;
   let currentCenteredIndex = 0;
   let mobileNavJumpTargetIndex = null;
-  let lastZaxisMovingState = null;
-
-  function isMobileTitleRuntime() {
-    return !!(
-      window.matchMedia &&
-      (
-        window.matchMedia("(pointer: coarse)").matches ||
-        window.matchMedia("(hover: none)").matches ||
-        window.innerWidth <= 900
-      )
-    );
-  }
-
-  function setZaxisMovingState(isMoving) {
-    if (!isMobileTitleRuntime()) return;
-    const nextState = !!isMoving;
-    if (lastZaxisMovingState === nextState) return;
-    document.body.classList.toggle("is-zaxis-moving", nextState);
-    lastZaxisMovingState = nextState;
-  }
-
-  function isCurrentMotionActive() {
-    return (
-      introActive ||
-      returningToStart ||
-      anchorTarget !== null ||
-      Math.abs(velocity) > CONFIG.stopThreshold ||
-      Math.abs(targetVelocity) > CONFIG.stopThreshold ||
-      Math.abs(position - nearestAnchor(position)) > CONFIG.centerDeadband
-    );
-  }
 
   function isMobileNavJumpRuntime() {
     return !!(
@@ -6980,7 +6901,7 @@ body.is-booting #panelDesc {
       if ((!isMobileNavJumpActive && !shouldDeferMobileBurstScroll) || shouldReleaseMobileNavJump) {
         const finalCentered = shouldReleaseMobileNavJump ? mobileNavJumpTargetIndex : newCentered;
 
-        closeOpenLightboxesOnly();
+        closeAllLightboxes();
         currentCenteredIndex = finalCentered;
         setPanelValidationMessage("");
         renderPanel(currentCenteredIndex);
@@ -7002,9 +6923,7 @@ body.is-booting #panelDesc {
       }
     }
 
-    if (!isMobileTitleRuntime() || !isCurrentMotionActive()) {
-      renderSlideTitle();
-    }
+    renderSlideTitle();
   }
 
   function render() {
@@ -7083,34 +7002,28 @@ body.is-booting #panelDesc {
       targetVelocity = 0;
     }
 
-    const stillMoving = (
-      introActive ||
-      Math.abs(velocity) > CONFIG.stopThreshold ||
-      Math.abs(targetVelocity) > CONFIG.stopThreshold ||
-      Math.abs(position - nearestAnchor(position)) > CONFIG.centerDeadband
-    );
-
-    setZaxisMovingState(stillMoving);
-
     renderAll();
     try {
       window.dispatchEvent(new CustomEvent("paletteknife:zaxis", { detail: { position: position, velocity: velocity, targetVelocity: targetVelocity } }));
     } catch (error) {}
 
-    if (stillMoving) {
+    if (
+      introActive ||
+      Math.abs(velocity) > CONFIG.stopThreshold ||
+      Math.abs(targetVelocity) > CONFIG.stopThreshold ||
+      Math.abs(position - nearestAnchor(position)) > CONFIG.centerDeadband
+    ) {
       raf = requestAnimationFrame(render);
     } else {
       position = nearestAnchor(position);
       velocity = 0;
       targetVelocity = 0;
-      setZaxisMovingState(false);
       renderAll();
       raf = null;
     }
   }
 
   function start() {
-    setZaxisMovingState(true);
     if (raf === null) raf = requestAnimationFrame(render);
   }
 
@@ -7207,23 +7120,6 @@ body.is-booting #panelDesc {
 
   function closeAllLightboxes() {
     PRODUCTS.forEach((_, i) => closeLightbox(i, true));
-  }
-
-  function closeOpenLightboxesOnly() {
-    /*
-      v149g80:
-      The normal slide-centered-change path was calling closeAllLightboxes(),
-      which loops every product and can reset/swap media for closed slides too
-      when their lightboxIndex is not zero. That hidden media work is poisonous
-      during mobile scroll and explains one-slide stutter that survives title,
-      blur, WebGL and input tests. For scroll transitions, close only genuinely
-      open lightboxes.
-    */
-    PRODUCTS.forEach((product, i) => {
-      if (product && product.lightboxOpen) {
-        closeLightbox(i, true);
-      }
-    });
   }
 
   function shiftLightbox(index, direction) {
